@@ -14,6 +14,7 @@
       <router-link to="/payment" class="nav-button">8. Payment</router-link>
       <router-link to="/method-payment" class="nav-button">9. Method Payment</router-link>
       <router-link to="/profil" class="nav-button">10. Profile</router-link>
+      <router-link to="/profil" class="nav-button">11. Pages Baru</router-link>
     </div>
   </div>
 </template>
