@@ -1,15 +1,3 @@
-<script setup>
-import { ref } from 'vue'
-import { useRouter } from "vue-router";
-const router = useRouter();
-
-const isMenuOpen = ref(false)
-
-function toggleMenu() {
-  isMenuOpen.value = !isMenuOpen.value
-}
-</script>
-
 <template>
   <header>
     <nav class="navbar">
@@ -55,6 +43,18 @@ function toggleMenu() {
     </transition>
   </header>
 </template>
+
+<script setup>
+import { ref } from 'vue'
+import { useRouter } from "vue-router";
+const router = useRouter();
+
+const isMenuOpen = ref(false)
+
+function toggleMenu() {
+  isMenuOpen.value = !isMenuOpen.value
+}
+</script>
 
 <style scoped>
 header {

@@ -1,7 +1,3 @@
-<script setup>
-import HeaderPage from "@/components/layouts/HeaderPage.vue";
-</script>
-
 <template>
   <div class="signup-page">
     <HeaderPage />
@@ -180,6 +176,9 @@ import HeaderPage from "@/components/layouts/HeaderPage.vue";
     </div>
   </div>
 </template>
+
+<script setup>
+</script>
 
 <script>
 export default {

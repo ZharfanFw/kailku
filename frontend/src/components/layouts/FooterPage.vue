@@ -1,6 +1,3 @@
-<script setup>
-</script>
-
 <template>
   <footer id="footer">
     <div class="line"></div>
@@ -18,6 +15,9 @@
     </div>
   </footer>
 </template>
+
+<script setup>
+</script>
 
 <style scoped>
 /* --- Desktop --- */

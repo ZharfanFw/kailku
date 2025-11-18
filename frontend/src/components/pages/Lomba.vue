@@ -1,7 +1,3 @@
-<script setup>
-// No script needed
-</script>
-
 <template>
   <section id="lomba-section">
     <div class="content-wrapper">
@@ -90,6 +86,10 @@
     </div>
   </section>
 </template>
+
+<script setup>
+// No script needed
+</script>
 
 <style scoped>
 /* ========================================

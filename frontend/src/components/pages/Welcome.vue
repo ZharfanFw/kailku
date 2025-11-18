@@ -1,72 +1,3 @@
-<script setup>
-import { Carousel, Slide, Pagination, Navigation } from 'vue3-carousel'
-import 'vue3-carousel/dist/carousel.css'
-import { ref } from "vue"
-import { useRouter } from "vue-router";
-
-const router = useRouter();
-
-const showOverlay = ref(false)
-
-// Search Field
-const tempatList = [
-  {
-    nama: "Alaska Fishing",
-    lokasi: "Jakarta Selatan",
-    gambar: new URL('@/assets/img/tempat-pemancingan/tempat1.avif', import.meta.url).href
-  },
-  {
-    nama: "Zyia Fishing",
-    lokasi: "Bandung",
-    gambar: new URL('@/assets/img/tempat-pemancingan/tempat2.avif', import.meta.url).href
-  },
-  {
-    nama: "ArcaMancing",
-    lokasi: "Surabaya",
-    gambar: new URL('@/assets/img/tempat-pemancingan/tempat3.avif', import.meta.url).href
-  },
-  {
-    nama: "Danau Biru Fishing Spot",
-    lokasi: "Bogor",
-    gambar: new URL('@/assets/img/tempat-pemancingan/lomba1.avif', import.meta.url).href
-  },
-]
-
-// Hamburger Menu
-const toggleOverlay = (value) => {
-  showOverlay.value = value
-}
-
-// Carousel (Data ini akan kita pakai lagi untuk section tips)
-const slides = [
-  {
-    title: 'Tips Memilih Umpan',
-    desc: 'Gunakan umpan sesuai jenis ikan yang ditarget, misalnya cacing untuk lele.',
-    img: '../../assets/img/tips/umpan.avif'
-  },
-  {
-    title: 'Ikan Mujair',
-    desc: 'Ikan air tawar yang sering ditemukan di kolam pemancingan.',
-    img: '../../assets/img/ikan/mujair.avif'
-  },
-  {
-    title: 'Teknik Menarik Ikan Besar',
-    desc: 'Tarik perlahan sambil kendurkan tali agar tidak putus.',
-    img: '../../assets/img/tips/narik.avif'
-  },
-  {
-    title: 'Ikan Nila',
-    desc: 'Ikan populer di kolam pemancingan, mudah ditangkap dan lezat.',
-    img: '../../assets/img/ikan/nila.avif'
-  },
-  {
-    title: 'Gunakan Joran yang Tepat',
-    desc: 'Joran karbon lebih ringan dan kuat, cocok untuk pemancingan harian.',
-    img: '../../assets/img/tips/joran.avif'
-  }
-]
-</script>
-
 <template>
   <section id="home">
     <img src="../../assets/img/search-section-bg.svg" alt="Search Section Background" class="background">
@@ -288,6 +219,75 @@ const slides = [
     </div>
   </section>
 </template>
+
+<script setup>
+import { Carousel, Slide, Pagination, Navigation } from 'vue3-carousel'
+import 'vue3-carousel/dist/carousel.css'
+import { ref } from "vue"
+import { useRouter } from "vue-router";
+
+const router = useRouter();
+
+const showOverlay = ref(false)
+
+// Search Field
+const tempatList = [
+  {
+    nama: "Alaska Fishing",
+    lokasi: "Jakarta Selatan",
+    gambar: new URL('@/assets/img/tempat-pemancingan/tempat1.avif', import.meta.url).href
+  },
+  {
+    nama: "Zyia Fishing",
+    lokasi: "Bandung",
+    gambar: new URL('@/assets/img/tempat-pemancingan/tempat2.avif', import.meta.url).href
+  },
+  {
+    nama: "ArcaMancing",
+    lokasi: "Surabaya",
+    gambar: new URL('@/assets/img/tempat-pemancingan/tempat3.avif', import.meta.url).href
+  },
+  {
+    nama: "Danau Biru Fishing Spot",
+    lokasi: "Bogor",
+    gambar: new URL('@/assets/img/tempat-pemancingan/lomba1.avif', import.meta.url).href
+  },
+]
+
+// Hamburger Menu
+const toggleOverlay = (value) => {
+  showOverlay.value = value
+}
+
+// Carousel (Data ini akan kita pakai lagi untuk section tips)
+const slides = [
+  {
+    title: 'Tips Memilih Umpan',
+    desc: 'Gunakan umpan sesuai jenis ikan yang ditarget, misalnya cacing untuk lele.',
+    img: '../../assets/img/tips/umpan.avif'
+  },
+  {
+    title: 'Ikan Mujair',
+    desc: 'Ikan air tawar yang sering ditemukan di kolam pemancingan.',
+    img: '../../assets/img/ikan/mujair.avif'
+  },
+  {
+    title: 'Teknik Menarik Ikan Besar',
+    desc: 'Tarik perlahan sambil kendurkan tali agar tidak putus.',
+    img: '../../assets/img/tips/narik.avif'
+  },
+  {
+    title: 'Ikan Nila',
+    desc: 'Ikan populer di kolam pemancingan, mudah ditangkap dan lezat.',
+    img: '../../assets/img/ikan/nila.avif'
+  },
+  {
+    title: 'Gunakan Joran yang Tepat',
+    desc: 'Joran karbon lebih ringan dan kuat, cocok untuk pemancingan harian.',
+    img: '../../assets/img/tips/joran.avif'
+  }
+]
+</script>
 
 <style scoped>
 #home {
