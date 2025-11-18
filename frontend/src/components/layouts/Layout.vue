@@ -1,9 +1,3 @@
-<script setup>
-import HeaderPage from './HeaderPage.vue'
-import FooterPage from './FooterPage.vue'
-import UserProfil from '../pages/UserProfil.vue'
-</script>
-
 <template>
   <div class="layout">
     <HeaderPage />
@@ -16,6 +10,12 @@ import UserProfil from '../pages/UserProfil.vue'
     <FooterPage />
   </div>
 </template>
+
+<script setup>
+import HeaderPage from './HeaderPage.vue'
+import FooterPage from './FooterPage.vue'
+import UserProfil from '../pages/UserProfil.vue'
+</script>
 
 <style scoped>
 .layout {

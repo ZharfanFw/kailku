@@ -79,7 +79,7 @@
           </div>
 
           <!-- Tombol Logout (selalu ada) -->
-          <button class="btn btn-danger">Logout</button>
+          <button @click="handleLogout" class="btn btn-danger">Logout</button>
         </div>
       </div>
     </main>
@@ -87,47 +87,134 @@
 </template>
 
 <script>
-// Ganti dengan placeholder. Jika Anda punya avatar.png, ganti URL ini.
+// Placeholder avatar
 const defaultAvatar = 'https://placehold.co/120x120/EBF8FF/023e8a?text=User';
 
 export default {
   name: "UserProfile",
+  
   data() {
     return {
       isEditing: false,
+      isLoading: true, // Tambah status loading
       avatar: defaultAvatar,
+      
+      // Data user default (kosong dulu)
       user: {
-        firstName: "Tatang",
-        lastName: "Sutarman",
-        email: "tatang.s@example.com",
-        phone: "081234567890",
-        address: "Jl. Ikan Piranha No. 21, Bandung, Jawa Barat",
+        id: null,
+        firstName: "",
+        lastName: "", 
+        email: "",
+        phone: "", // Backend kita belum simpan phone & address, jadi ini nanti null
+        address: "",
       },
-      // Salinan data untuk edit, agar bisa dibatalkan
+      
+      // Salinan data untuk edit
       userEdit: null, 
     };
   },
+
+  // === 1. OTOMATIS JALAN SAAT HALAMAN DIBUKA ===
+  created() {
+    this.fetchUserProfile();
+  },
+
   methods: {
+    // === 2. AMBIL DATA DARI BACKEND ===
+    async fetchUserProfile() {
+      const token = localStorage.getItem('kailku_token');
+
+      // Kalau tidak ada token, tendang ke Login
+      if (!token) {
+        alert("Anda belum login!");
+        this.$router.push('/login');
+        return;
+      }
+
+      try {
+        const response = await fetch('http://localhost:3000/auth/profile', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}` // <-- KUNCI MASUK (TIKET)
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error("Gagal mengambil profil");
+        }
+
+        const data = await response.json();
+        
+        // Update data di layar dengan data dari backend
+        // Karena backend cuma simpan 'username', kita taruh di firstName dulu
+        this.user.id = data.id;
+        this.user.firstName = data.username; 
+        this.user.email = data.email;
+        
+        // (Opsional: Jika backend kirim phone/address nanti, update di sini)
+
+      } catch (err) {
+        console.error(err);
+        alert("Sesi habis, silakan login ulang.");
+        localStorage.removeItem('kailku_token');
+        this.$router.push('/login');
+      } finally {
+        this.isLoading = false;
+      }
+    },
+
+    // === 3. UPDATE PROFIL (PATCH) ===
+    async saveEdit() {
+      const token = localStorage.getItem('kailku_token');
+      
+      try {
+        const response = await fetch('http://localhost:3000/auth/my-profile', {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            username: this.userEdit.firstName, // Backend pake 'username'
+            email: this.userEdit.email
+          })
+        });
+
+        if (!response.ok) {
+           const errorData = await response.json();
+           throw new Error(errorData.message || "Gagal update profil");
+        }
+
+        // Sukses update di backend, update di frontend
+        this.user = { ...this.userEdit };
+        this.isEditing = false;
+        alert("Profil berhasil diperbarui!");
+
+      } catch (err) {
+        alert(err.message);
+      }
+    },
+
     startEdit() {
-      // Salin data 'user' ke 'userEdit' saat mulai mengedit
       this.userEdit = { ...this.user };
       this.isEditing = true;
     },
-    saveEdit() {
-      // Simpan data dari 'userEdit' kembali ke 'user'
-      this.user = { ...this.userEdit };
-      this.isEditing = false;
-      // Di aplikasi nyata, Anda akan memanggil API di sini
-    },
+
     cancelEdit() {
-      // Buang perubahan dan kembali ke mode non-edit
       this.userEdit = null;
       this.isEditing = false;
     },
+
+    // === 4. LOGOUT ===
+    handleLogout() {
+      // Hapus tiket
+      localStorage.removeItem('kailku_token');
+      // Pindah ke login
+      this.$router.push('/login');
+    }
   },
 };
 </script>
-
 <style scoped>
 .profile-page-container {
   font-family: 'Poppins', sans-serif;

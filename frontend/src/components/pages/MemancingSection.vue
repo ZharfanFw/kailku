@@ -168,12 +168,12 @@ export default {
   data() {
     return {
       searchQuery: "",
-      selectedFilter: null, // Ganti nilai default menjadi null atau "" agar "All" terpilih pertama
+      selectedFilter: null,
       currentPage: 1,
       itemsPerPage: 12,
 
       filters: [
-        { id: null, label: "All" }, // Tambahkan tombol "All"
+        { id: null, label: "All" },
         { id: "bandung", label: "Bandung" },
         { id: "garut", label: "Garut" },
         { id: "tasikmalaya", label: "Tasikmalaya" },
@@ -184,201 +184,29 @@ export default {
         { id: "cilacap", label: "Cilacap" },
       ],
 
-      fishingPlaces: [
-        {
-          id: 1,
-          name: "Kolam Pemancingan Kacuy",
-          location: "Arcamanik, Bandung",
-          rating: 4.5,
-          price: 25000,
-          image: new URL(
-            "@/assets/img/memancing-section/kacuy.avif",
-            import.meta.url
-          ).href,
-          facilities: [
-            "Gazebo",
-            "Toilet",
-            "Mushola",
-            "Parkir Luas",
-            "Warung Makan",
-          ],
-          city: "bandung",
-        },
-        {
-          id: 2,
-          name: "Saguling Lake Fishing",
-          location: "Saguling, Bandung",
-          rating: 4.7,
-          price: 30000,
-          image: new URL(
-            "@/assets/img/memancing-section/saguling.avif",
-            import.meta.url
-          ).href,
-          facilities: ["Gazebo", "Toilet", "Parkir", "View Danau"],
-          city: "bandung",
-        },
-        {
-          id: 3,
-          name: "Ciwidey Fishing Park",
-          location: "Ciwidey, Bandung",
-          rating: 4.3,
-          price: 20000,
-          image: new URL(
-            "@/assets/img/memancing-section/ciwidey.avif",
-            import.meta.url
-          ).href,
-          facilities: ["Gazebo", "Toilet", "Mushola", "Pemandangan Pegunungan"],
-          city: "bandung",
-        },
-        {
-          id: 4,
-          name: "Ranca Upas Fishing",
-          location: "Rancabali, Bandung",
-          rating: 4.6,
-          price: 35000,
-          image: new URL(
-            "@/assets/img/memancing-section/rancaupas.avif",
-            import.meta.url
-          ).href,
-          facilities: ["Gazebo Premium", "Toilet", "Camping Ground", "Warung"],
-          city: "bandung",
-        },
-        {
-          id: 5,
-          name: "Dago Pakar Fishing",
-          location: "Dago, Bandung",
-          rating: 4.4,
-          price: 40000,
-          image: new URL(
-            "@/assets/img/memancing-section/dago.avif",
-            import.meta.url
-          ).href,
-          facilities: ["Gazebo", "Toilet", "WiFi", "Café", "View Kota"],
-          city: "bandung",
-        },
-        {
-          id: 6,
-          name: "Lembang Trout Fishing",
-          location: "Lembang, Bandung",
-          rating: 4.8,
-          price: 45000,
-          image: new URL(
-            "@/assets/img/memancing-section/lembang.avif",
-            import.meta.url
-          ).href,
-          facilities: [
-            "Gazebo",
-            "Toilet",
-            "Restaurant",
-            "Parkir Luas",
-            "Kolam Khusus Anak",
-          ],
-          city: "bandung",
-        },
-        {
-          id: 7,
-          name: "Cileunyi Fishing Pond",
-          location: "Cileunyi, Bandung",
-          rating: 4.2,
-          price: 18000,
-          image: new URL(
-            "@/assets/img/memancing-section/cileunyi.avif",
-            import.meta.url
-          ).href,
-          facilities: ["Gazebo", "Toilet", "Mushola", "Parkir"],
-          city: "bandung",
-        },
-        {
-          id: 8,
-          name: "Maribaya Fishing",
-          location: "Maribaya, Bandung",
-          rating: 4.5,
-          price: 32000,
-          image: new URL(
-            "@/assets/img/memancing-section/maribaya.avif",
-            import.meta.url
-          ).href,
-          facilities: ["Gazebo", "Toilet", "Warung", "View Air Terjun"],
-          city: "bandung",
-        },
-        {
-          id: 9,
-          name: "Cipanas Fishing Resort",
-          location: "Cipanas, Garut",
-          rating: 4.6,
-          price: 28000,
-          image: new URL(
-            "@/assets/img/memancing-section/cipanas.avif",
-            import.meta.url
-          ).href,
-          facilities: [
-            "Gazebo",
-            "Toilet",
-            "Mushola",
-            "Hot Spring",
-            "Restaurant",
-          ],
-          city: "garut",
-        },
-        {
-          id: 10,
-          name: "Situ Bagendit Fishing",
-          location: "Banyuresmi, Garut",
-          rating: 4.4,
-          price: 22000,
-          image: new URL(
-            "@/assets/img/memancing-section/situbagendit.avif",
-            import.meta.url
-          ).href,
-          facilities: ["Gazebo", "Toilet", "Perahu", "View Danau"],
-          city: "garut",
-        },
-        {
-          id: 11,
-          name: "Kampung Sampireun Fishing",
-          location: "Garut Kota, Garut",
-          rating: 4.7,
-          price: 50000,
-          image: new URL(
-            "@/assets/img/memancing-section/kampung.avif",
-            import.meta.url
-          ).href,
-          facilities: ["Villa", "Restaurant", "Kolam Private", "Spa", "WiFi"],
-          city: "garut",
-        },
-        {
-          id: 12,
-          name: "Tasik Fishing Paradise",
-          location: "Indihiang, Tasikmalaya",
-          rating: 4.3,
-          price: 25000,
-          image: new URL(
-            "@/assets/img/memancing-section/tasik.avif",
-            import.meta.url
-          ).href,
-          facilities: ["Gazebo", "Toilet", "Mushola", "Parkir", "Warung"],
-          city: "tasikmalaya",
-        },
-      ],
+      fishingPlaces: [], // <-- Error #1: Tanda ']' ekstra DIHAPUS
     };
+  },
+
+  created() {
+    this.fetchTempatMancing();
   },
 
   computed: {
     filteredPlaces() {
-      let places = this.fishingPlaces; // Filter by city // Cek jika selectedFilter tidak null/kosong sebelum melakukan filtering
+      let places = this.fishingPlaces; 
 
       if (this.selectedFilter) {
         places = places.filter((place) => place.city === this.selectedFilter);
       }
 
-      // Filter by search query
       if (this.searchQuery) {
         const query = this.searchQuery.toLowerCase();
         places = places.filter(
           (place) =>
             place.name.toLowerCase().includes(query) ||
             place.location.toLowerCase().includes(query) ||
-            place.facilities.some((f) => f.toLowerCase().includes(query))
+            (place.facilities && place.facilities.some((f) => f.toLowerCase().includes(query))) // Tambahkan pengecekan 'place.facilities'
         );
       }
 
@@ -415,12 +243,46 @@ export default {
 
   methods: {
     formatCurrency(amount) {
+      if (amount == null) return "Rp 0"; // Tambahkan penjagaan
       return new Intl.NumberFormat("id-ID", {
         style: "currency",
         currency: "IDR",
         minimumFractionDigits: 0,
       }).format(amount);
     },
+
+    async fetchTempatMancing() {
+      console.log("Mulai memanggil backend...");
+      try {
+        const response = await fetch('http://localhost:3000/tempat_mancing');
+
+        if(!response.ok) {
+          throw new Error(`Error: ${response.status}`);
+        }
+
+        const dataDariDatabase = await response.json();
+        console.log("Data diterima: ", dataDariDatabase);
+
+        const dataSiapTampil = dataDariDatabase.map(db_tempat => {
+          return {
+            id: db_tempat.id,
+            name: db_tempat.nama,
+            location: db_tempat.lokasi,
+            price: db_tempat.harga_per_jam,
+            
+            // Data "palsu" untuk jaga-jaga
+            rating: 4.2, 
+            image: 'https://via.placeholder.com/300x200.png?text=Gambar+Tempat', // Perlu perbaikan gambar
+            facilities: ["Gazebo", "Toilet"], // Typo: 'facilites' -> 'facilities'
+            city: db_tempat.lokasi ? db_tempat.lokasi.toLowerCase().split(',')[0] : 'bandung' // Perbaikan filter kota
+          };
+        });
+
+        this.fishingPlaces = dataSiapTampil;
+      } catch (err) {
+        console.error("Gagal mengambil data dari backend: ", err);
+      }
+    }, // <-- Error #3: KOMA DITAMBAHKAN DI SINI
 
     selectFilter(filterId) {
       this.selectedFilter = filterId;
@@ -430,6 +292,14 @@ export default {
     selectPlace(place) {
       this.$emit("place-selected", place);
       console.log("Selected place:", place);
+      // Panggil goToReview dari sini
+      this.goToReview(place);
+    },
+
+    // Error #2: Fungsi "tersesat" DIPINDAHKAN KE DALAM 'methods'
+    goToReview(tempat) {
+      // Gunakan 'this.$router'
+      this.$router.push({ name: "ReviewSection", params: { id: tempat.nama } });
     },
 
     goToPage(page) {
@@ -459,14 +329,13 @@ export default {
   },
 };
 
-import { useRouter } from "vue-router";
-const router = useRouter();
-
-function goToReview(tempat) {
-  router.push({ name: "ReviewSection", params: { id: tempat.nama } });
-}
+// Error #2: SEMUA KODE DI BAWAH INI DIHAPUS
+// import { useRouter } from "vue-router";
+// const router = useRouter();
+// function goToReview(tempat) {
+//   router.push({ name: "ReviewSection", params: { id: tempat.nama } });
+// }
 </script>
-
 <style scoped>
 /* ===== VARIABEL WARNA ===== */
 :root {
