@@ -1,811 +1,882 @@
 <template>
-  <section id="home">
-    <img src="../../assets/img/search-section-bg.svg" alt="Search Section Background" class="background">
-    <div class="home-container">
-      <form>
-        <div class="search-box" @click.self="toggleOverlay(false)">
-          <font-awesome-icon icon="fa-solid fa-magnifying-glass" />
-          <input type="text" name="tempat" placeholder="Mau memancing dimana hari ini?" class="search-field"
-            @focus="toggleOverlay(true)" />
+  <div class="page-wrapper">
 
-          <!-- Overlay muncul di bawah search -->
-          <div v-if="showOverlay" class="overlay-suggestion">
-            <h3>Rekomendasi Tempat Memancing</h3>
-            <div class="overlay-grid">
-              <div v-for="(item, index) in tempatList" :key="index" class="overlay-card">
-                <img :src="item.gambar" :alt="item.nama">
-                <div class="info">
-                  <h4>{{ item.nama }}</h4>
-                  <p>{{ item.lokasi }}</p>
+    <section id="home" class="hero-section">
+      <div class="hero-overlay"></div>
+
+      <div class="container">
+        <div class="hero-content">
+          <h1 class="hero-title">Temukan Spot Mancing <br> <span class="highlight">Terbaikmu</span></h1>
+          <p class="hero-subtitle">Jelajahi ribuan kolam dan spot mancing di seluruh Indonesia</p>
+
+          <div class="search-wrapper">
+            <div class="search-box">
+              <font-awesome-icon icon="fa-solid fa-magnifying-glass" class="search-icon" />
+              <input type="text" placeholder="Cari nama tempat atau kota..." class="search-field" v-model="searchQuery"
+                @focus="showOverlay = true" @blur="handleBlur" />
+
+              <transition name="fade">
+                <div v-if="showOverlay && filteredList.length > 0" class="search-dropdown">
+                  <div v-for="item in filteredList.slice(0, 4)" :key="item.id" class="dropdown-item"
+                    @mousedown="goToDetail(item.id)">
+                    <img :src="item.image" class="thumb">
+                    <div class="item-info">
+                      <strong>{{ item.nama }}</strong>
+                    </div>
+                  </div>
+                </div>
+              </transition>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <section class="section-container">
+      <div class="container">
+        <div class="section-header">
+          <h2>Tempat Populer</h2>
+          <p>Spot pilihan terbaru yang wajib kamu coba</p>
+        </div>
+
+        <div v-if="isLoading" class="loading-text">Memuat tempat...</div>
+
+        <div v-else class="grid-3">
+          <div v-for="place in tempatList.slice(0, 3)" :key="place.id" class="card" @click="goToDetail(place.id)">
+            <div class="card-img-wrap">
+              <img :src="place.image" :alt="place.nama">
+              <span class="badge">{{ place.kota }}</span>
+            </div>
+            <div class="card-body">
+              <h3>{{ place.nama }}</h3>
+              <div class="rating">
+                <font-awesome-icon icon="fa-solid fa-star" style="color: #ffb703;" />
+                {{ place.rating }} / 5.0
+              </div>
+              <p class="location">
+                <font-awesome-icon icon="fa-solid fa-location-dot" /> {{ place.lokasi }}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="center-btn">
+          <button class="btn-main" @click="router.push('/memancing-section')">Lihat Semua Tempat</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-container bg-tips">
+      <div class="container">
+        <div class="section-header">
+          <h2>Tips & Trik Jitu</h2>
+          <p>Tingkatkan skill memancingmu dengan panduan ahli</p>
+        </div>
+
+        <Carousel :items-to-show="carouselItemsToShow" :wrap-around="true" :autoplay="3000">
+          <Slide v-for="(tip, i) in tipsList" :key="i">
+            <div class="tip-card-carousel">
+              <div class="tip-img-box">
+                <span class="tip-emoji">{{ tip.icon }}</span>
+              </div>
+              <div class="tip-content">
+                <h3>{{ tip.title }}</h3>
+                <p>{{ tip.desc }}</p>
+              </div>
+            </div>
+          </Slide>
+
+          <template #addons>
+            <Navigation />
+            <Pagination />
+          </template>
+        </Carousel>
+      </div>
+    </section>
+
+    <section class="section-container">
+      <div class="container">
+        <div class="section-header">
+          <h2>Turnamen Mendatang</h2>
+          <p>Kompetisi bergengsi dengan hadiah fantastis</p>
+        </div>
+
+        <div class="lomba-grid">
+          <div class="lomba-card-pro">
+            <div class="lomba-header">
+              <img src="../../assets/img/tempat-pemancingan/lomba1.avif" alt="Lomba">
+              <span class="lomba-badge nasional">NASIONAL</span>
+            </div>
+            <div class="lomba-body">
+              <h3>Fishing Challenge Pangandaran 2025</h3>
+              <p class="desc">
+                Kompetisi mancing laut lepas pantai terbesar tahun ini. Target ikan Marlin dan Tuna.
+              </p>
+
+              <div class="lomba-details-grid">
+                <div class="detail-box">
+                  <span class="label">📅 Tanggal</span>
+                  <strong>14 Juli 2025</strong>
+                </div>
+                <div class="detail-box">
+                  <span class="label">📍 Lokasi</span>
+                  <strong>Pantai Pangandaran</strong>
+                </div>
+                <div class="detail-box">
+                  <span class="label">💰 Pendaftaran</span>
+                  <strong>Rp 150.000</strong>
+                </div>
+                <div class="detail-box highlight">
+                  <span class="label">🏆 Hadiah Utama</span>
+                  <strong>Rp 10.000.000</strong>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="lomba-card-pro">
+            <div class="lomba-header">
+              <img src="../../assets/img/tempat-pemancingan/lomba2.avif" alt="Lomba">
+              <span class="lomba-badge regional">REGIONAL</span>
+            </div>
+            <div class="lomba-body">
+              <h3>Jakarta Galatama Masters 2025</h3>
+              <p class="desc">
+                Adu strategi dan kesabaran di kolam Galatama Ikan Mas. Sistem poin terberat.
+              </p>
+
+              <div class="lomba-details-grid">
+                <div class="detail-box">
+                  <span class="label">📅 Tanggal</span>
+                  <strong>21 Agustus 2025</strong>
+                </div>
+                <div class="detail-box">
+                  <span class="label">📍 Lokasi</span>
+                  <strong>Jakarta Selatan</strong>
+                </div>
+                <div class="detail-box">
+                  <span class="label">💰 Pendaftaran</span>
+                  <strong>Rp 200.000</strong>
+                </div>
+                <div class="detail-box highlight">
+                  <span class="label">🏆 Hadiah Utama</span>
+                  <strong>Rp 20.000.000</strong>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </form>
-    </div>
-    <img src="../../assets/img/separator/wave-1.svg" alt="Separator 1" class="sep-1">
-  </section>
 
-  <section id="tempat-section">
-    <!-- Konten Utama -->
-    <div class="content-wrapper">
-      <!-- Judul -->
-      <h1 class="main-title">
-        Tempat Pemancingan
-      </h1>
-
-      <!-- Grid untuk Kartu -->
-      <div class="card-grid">
-        <!-- Kartu 1 -->
-        <div class="card">
-          <img src="../../assets/img/tempat-pemancingan/tempat1.avif" alt="Alaska Fishing">
-          <div class="card-content">
-            <h2><font-awesome-icon icon="fa-solid fa-location-dot" style="color: #48cae4;" size="sm" />Alaska Fishing
-            </h2>
-            <!-- Rating Bintang -->
-            <div class="rating">
-              <font-awesome-icon icon="fa-solid fa-star" style="color: #48cae4;" />
-              <font-awesome-icon icon="fa-solid fa-star" style="color: #48cae4;" />
-              <font-awesome-icon icon="fa-solid fa-star" style="color: #48cae4;" />
-              <font-awesome-icon icon="fa-solid fa-star" style="color: #48cae4;" />
-              <font-awesome-icon icon="fa-solid fa-star" style="color: #48cae4;" />
-            </div>
-            <p>
-              Jalan Elang Perkasa No. 45, Jakarta Selatan
-            </p>
-          </div>
-        </div>
-
-        <!-- Kartu 2 -->
-        <div class="card">
-          <img src="../../assets/img/tempat-pemancingan/tempat2.avif" alt="Zyia Fishing">
-          <div class="card-content">
-            <h2><font-awesome-icon icon="fa-solid fa-location-dot" style="color: #48cae4;" size="sm" />Zyia Fishing</h2>
-            <!-- Rating Bintang -->
-            <div class="rating">
-              <font-awesome-icon icon="fa-solid fa-star" style="color: #48cae4;" />
-              <font-awesome-icon icon="fa-solid fa-star" style="color: #48cae4;" />
-              <font-awesome-icon icon="fa-solid fa-star" style="color: #48cae4;" />
-              <font-awesome-icon icon="fa-solid fa-star" style="color: #48cae4;" />
-              <font-awesome-icon icon="fa-solid fa-star" style="color: #48cae4;" />
-            </div>
-            <p>
-              Komp. Mawar Indah Blok B7/12, Bandung
-            </p>
-          </div>
-        </div>
-
-        <!-- Kartu 3 -->
-        <div class="card">
-          <img src="../../assets/img/tempat-pemancingan/tempat3.avif" alt="ArcaMancing">
-          <div class="card-content">
-            <h2><font-awesome-icon icon="fa-solid fa-location-dot" style="color: #48cae4;" size="sm" />ArcaMancing</h2>
-            <!-- Rating Bintang -->
-            <div class="rating">
-              <font-awesome-icon icon="fa-solid fa-star" style="color: #48cae4;" />
-              <font-awesome-icon icon="fa-solid fa-star" style="color: #48cae4;" />
-              <font-awesome-icon icon="fa-solid fa-star" style="color: #48cae4;" />
-              <font-awesome-icon icon="fa-solid fa-star" style="color: #48cae4;" />
-              <font-awesome-icon icon="fa-solid fa-star" style="color: #a9a9a9;" />
-            </div>
-            <p>
-              Jl. Pahlawan Seribu Kav. 1A, Surabaya
-            </p>
-          </div>
-        </div>
       </div>
+    </section>
 
-      <!-- Tombol "Lihat Selengkapnya" -->
-      <div class="button-container">
-        <button class="button-primary" @click="router.push('/memancing-section')">
-          Lihat Selengkapnya
-        </button>
-      </div>
-    </div>
-    <img src="../../assets/img/separator/wave-2.svg" alt="Separator 2" class="sep-2">
-  </section>
-
-  <!-- Tips Section -->
-  <section id="tips-section">
-    <img src="../../assets/img/separator/wave-2.svg" alt="Separator Atas" class="sep-top">
-    <div class="content-wrapper">
-      <h1 class="main-title">
-        Tips & Trick
-      </h1>
-
-      <div class="tips-grid">
-        <!-- Card di-loop dari data 'slides' -->
-        <div v-for="tip in slides" :key="tip.title" class="tip-card">
-          <h3>{{ tip.title }}</h3>
-          <p>{{ tip.desc }}</p>
-        </div>
-      </div>
-    </div>
-    <img src="../../assets/img/separator/wave-3.svg" alt="Separator Bawah" class="sep-bottom">
-  </section>
-
-  <!-- Section Lomba -->
-  <section id="lomba-section">
-    <div class="content-wrapper">
-      <!-- Section Title -->
-      <h1 class="main-title">Lomba Memancing</h1>
-
-      <!-- Competition Card 1 -->
-      <div class="lomba-card">
-        <div class="lomba-image">
-          <img src="../../assets/img/tempat-pemancingan/lomba1.avif" alt="Suasana lomba memancing 1">
-        </div>
-        <div class="lomba-details">
-          <span class="lomba-badge">LOMBA 1</span>
-          <h2 class="lomba-title">Fishing Challenge Pangandaran 2025</h2>
-          <p class="lomba-description">
-            Lomba mancing skala nasional dengan target ikan laut di salah satu pantai terbaik Indonesia.
-          </p>
-          <ul class="detail-list">
-            <li>
-              <font-awesome-icon icon="fa-solid fa-calendar-days" class="icon" />
-              <span>14 Juli 2025</span>
-            </li>
-            <li>
-              <font-awesome-icon icon="fa-solid fa-location-dot" class="icon" />
-              <span>Pantai Pangandaran, Jawa Barat</span>
-            </li>
-            <li>
-              <font-awesome-icon icon="fa-solid fa-coins" class="icon" />
-              <span>Biaya pendaftaran: Rp150.000/orang</span>
-            </li>
-            <li>
-              <font-awesome-icon icon="fa-solid fa-trophy" class="icon" />
-              <span>Hadiah utama: Rp10.000.000 + Trophy</span>
-            </li>
-            <li>
-              <font-awesome-icon icon="fa-solid fa-scale-balanced" class="icon" />
-              <span>Penilaian: Ikan terberat (1 ekor)</span>
-            </li>
-          </ul>
-        </div>
-      </div>
-
-      <!-- Competition Card 2 -->
-      <div class="lomba-card">
-        <div class="lomba-image">
-          <img src="../../assets/img/tempat-pemancingan/lomba2.avif" alt="Suasana lomba memancing 2">
-        </div>
-        <div class="lomba-details">
-          <span class="lomba-badge">LOMBA 2</span>
-          <h2 class="lomba-title">Jakarta Galatama Masters 2025</h2>
-          <p class="lomba-description">
-            Kompetisi galatama ikan mas di pemancingan eksklusif Jakarta Selatan.
-          </p>
-          <ul class="detail-list">
-            <li>
-              <font-awesome-icon icon="fa-solid fa-calendar-days" class="icon" />
-              <span>21 Agustus 2025</span>
-            </li>
-            <li>
-              <font-awesome-icon icon="fa-solid fa-location-dot" class="icon" />
-              <span>Jalan Elang Perkasa No. 45, Jakarta Selatan</span>
-            </li>
-            <li>
-              <font-awesome-icon icon="fa-solid fa-coins" class="icon" />
-              <span>Biaya pendaftaran: Rp150.000/orang</span>
-            </li>
-            <li>
-              <font-awesome-icon icon="fa-solid fa-trophy" class="icon" />
-              <span>Hadiah utama: Rp20.000.000 + Trophy</span>
-            </li>
-            <li>
-              <font-awesome-icon icon="fa-solid fa-scale-balanced" class="icon" />
-              <span>Penilaian: Total berat 3 ekor ikan</span>
-            </li>
-          </ul>
-        </div>
-      </div>
-    </div>
-  </section>
+  </div>
 </template>
 
 <script setup>
+import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
+import { useRouter } from "vue-router";
 import { Carousel, Slide, Pagination, Navigation } from 'vue3-carousel'
 import 'vue3-carousel/dist/carousel.css'
-import { ref } from "vue"
-import { useRouter } from "vue-router";
 
 const router = useRouter();
+const showOverlay = ref(false);
+const isLoading = ref(true);
+const searchQuery = ref("");
+const tempatList = ref([]);
 
-const showOverlay = ref(false)
+// =========================
+// FIXED RESPONSIVE CAROUSEL
+// =========================
+const screenWidth = ref(window.innerWidth);
 
-// Search Field
-const tempatList = [
-  {
-    nama: "Alaska Fishing",
-    lokasi: "Jakarta Selatan",
-    gambar: new URL('@/assets/img/tempat-pemancingan/tempat1.avif', import.meta.url).href
-  },
-  {
-    nama: "Zyia Fishing",
-    lokasi: "Bandung",
-    gambar: new URL('@/assets/img/tempat-pemancingan/tempat2.avif', import.meta.url).href
-  },
-  {
-    nama: "ArcaMancing",
-    lokasi: "Surabaya",
-    gambar: new URL('@/assets/img/tempat-pemancingan/tempat3.avif', import.meta.url).href
-  },
-  {
-    nama: "Danau Biru Fishing Spot",
-    lokasi: "Bogor",
-    gambar: new URL('@/assets/img/tempat-pemancingan/lomba1.avif', import.meta.url).href
-  },
-]
+const updateWidth = () => {
+  screenWidth.value = window.innerWidth;
+};
 
-// Hamburger Menu
-const toggleOverlay = (value) => {
-  showOverlay.value = value
+onMounted(() => {
+  window.addEventListener('resize', updateWidth);
+  fetchTempatMancing();
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', updateWidth);
+});
+
+// Jumlah slide berdasarkan width live
+const carouselItemsToShow = computed(() => {
+  if (screenWidth.value < 768) return 1;
+  if (screenWidth.value < 1024) return 2;
+  return 3;
+});
+
+// Data Tips
+const tipsList = ref([
+  { title: 'Umpan Jitu Lele', desc: 'Gunakan cacing tanah atau usus ayam yang sudah diperam selama 2 hari.', icon: '🪱' },
+  { title: 'Teknik Casting', desc: 'Lempar umpan sejauh mungkin dan tarik perlahan.', icon: '🎣' },
+  { title: 'Waktu Terbaik', desc: 'Paling aktif makan saat pagi & sore.', icon: '⏰' },
+  { title: 'Merawat Reel', desc: 'Bilas dengan air tawar setelah digunakan.', icon: '⚙️' },
+  { title: 'Simpul Pancing', desc: 'Gunakan simpul Palomar untuk kekuatan maksimal.', icon: '🪢' },
+]);
+
+function capitalizeWords(str) {
+  return str.replace(/\b\w/g, char => char.toUpperCase());
 }
 
-// Carousel (Data ini akan kita pakai lagi untuk section tips)
-const slides = [
-  {
-    title: 'Tips Memilih Umpan',
-    desc: 'Gunakan umpan sesuai jenis ikan yang ditarget, misalnya cacing untuk lele.',
-    img: '../../assets/img/tips/umpan.avif'
-  },
-  {
-    title: 'Ikan Mujair',
-    desc: 'Ikan air tawar yang sering ditemukan di kolam pemancingan.',
-    img: '../../assets/img/ikan/mujair.avif'
-  },
-  {
-    title: 'Teknik Menarik Ikan Besar',
-    desc: 'Tarik perlahan sambil kendurkan tali agar tidak putus.',
-    img: '../../assets/img/tips/narik.avif'
-  },
-  {
-    title: 'Ikan Nila',
-    desc: 'Ikan populer di kolam pemancingan, mudah ditangkap dan lezat.',
-    img: '../../assets/img/ikan/nila.avif'
-  },
-  {
-    title: 'Gunakan Joran yang Tepat',
-    desc: 'Joran karbon lebih ringan dan kuat, cocok untuk pemancingan harian.',
-    img: '../../assets/img/tips/joran.avif'
+async function fetchTempatMancing() {
+  try {
+    const response = await fetch('http://localhost:3000/tempat_mancing');
+    const data = await response.json();
+    tempatList.value = data.map(item => ({
+      id: item.id,
+      nama: item.nama,
+      lokasi: item.lokasi,
+      kota: capitalizeWords(item.kota || 'Indonesia'),
+      rating: 4.5,
+      image: item.image_url || 'https://via.placeholder.com/300x200?text=No+Image'
+    }));
+  } catch (err) {
+    console.error(err);
+  } finally {
+    isLoading.value = false;
   }
-]
+}
+
+const filteredList = computed(() => {
+  if (!searchQuery.value) return tempatList.value;
+  return tempatList.value.filter(item =>
+    item.nama.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+    item.kota.toLowerCase().includes(searchQuery.value.toLowerCase())
+  );
+});
+
+const goToDetail = (id) => router.push({ name: 'ReviewSection', params: { id } });
+
+const handleBlur = () => {
+  setTimeout(() => (showOverlay.value = false), 200);
+};
 </script>
 
 <style scoped>
-#home {
-  height: 85vh;
-  position: relative;
-  overflow: hidden;
-}
-
-.background {
+/* --- GLOBAL --- */
+.page-wrapper {
   width: 100%;
-  height: 100%;
-  position: absolute;
-  object-fit: cover;
-  z-index: -9999;
+  overflow-x: hidden;
 }
 
-.home-container {
-  display: flex;
-  justify-content: center;
-  position: relative;
-  z-index: 1;
-  padding: 0 1.5rem;
-  box-sizing: border-box;
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
 }
 
-.overlay-suggestion {
-  position: absolute;
-  top: 110%;
-  left: 0;
-  width: 100%;
-  background: white;
-  border-radius: 0.75rem;
-  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
-  padding: 1rem;
-  z-index: 999;
-  animation: fadeIn 0.2s ease;
+.section-container {
+  padding: 80px 0;
 }
 
-.overlay-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 1rem;
+.section-header {
+  text-align: center;
+  margin-bottom: 40px;
 }
 
-@media (min-width: 640px) {
-  .overlay-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-.overlay-card {
-  display: flex;
-  background: #f9f9f9;
-  border-radius: 0.5rem;
-  overflow: hidden;
-  transition: transform 0.2s ease;
-}
-
-.overlay-card:hover {
-  transform: scale(1.03);
-}
-
-.overlay-card img {
-  width: 70px;
-  height: 70px;
-  object-fit: cover;
-}
-
-.overlay-card .info {
-  padding: 0.5rem 0.75rem;
-}
-
-.overlay-card h4 {
-  font-size: 0.95rem;
+.section-header h2 {
+  font-size: 2.2rem;
   color: #023e8a;
-  margin: 0;
+  font-weight: 800;
+  margin-bottom: 10px;
 }
 
-.overlay-card p {
-  font-size: 0.8rem;
-  color: #6b7280;
+.section-header p {
+  color: #666;
+  font-size: 1.1rem;
+}
+
+/* --- HERO SECTION --- */
+.hero-section {
+  height: 90vh;
+  min-height: 600px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  position: relative;
+  background-image: url('../../assets/img/search-section-bg.svg');
+  background-size: cover;
+  background-position: center;
+}
+
+.hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.hero-content {
+  position: relative;
+  z-index: 2;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.hero-title {
+  font-size: 3.5rem;
+  font-weight: 900;
+  color: #023e8a;
+  line-height: 1.2;
+  margin-bottom: 1.5rem;
+  text-shadow: 3px 3px 0px #fff, 0 0 25px rgba(255, 255, 255, 0.9);
+}
+
+.hero-title .highlight {
+  color: #0077b6;
+}
+
+.hero-subtitle {
+  font-size: 1.2rem;
+  color: #333;
+  font-weight: 700;
+  margin-bottom: 3rem;
+  text-shadow: 1px 1px 0px #fff;
+  background: rgba(255, 255, 255, 0.7);
+  display: inline-block;
+  padding: 8px 20px;
+  border-radius: 30px;
+}
+
+.search-wrapper {
+  position: relative;
+  max-width: 600px;
+  margin: 0 auto;
 }
 
 .search-box {
-  margin-top: 15rem;
-  background: var(--color-white);
-  padding: 0.8rem 1.5rem;
   display: flex;
   align-items: center;
-  border: 2px solid #023e8a;
-  border-radius: 25px;
-  width: 90%;
-  box-sizing: border-box;
-  position: relative;
+  background: white;
+  border-radius: 50px;
+  padding: 15px 25px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  border: 1px solid transparent;
+  transition: 0.3s;
+}
+
+.search-box:focus-within {
+  transform: scale(1.02);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+  border-color: rgba(2, 62, 138, 0.1);
+}
+
+.search-icon {
+  font-size: 1.2rem;
+  color: #023e8a;
+  margin-right: 15px;
 }
 
 .search-field {
   border: none;
   outline: none;
-  padding: 0 0.5rem;
-  margin-left: 0.5rem;
-  flex-grow: 1;
   width: 100%;
-  background: transparent;
-  font-size: 0.9rem;
+  font-size: 1rem;
+  color: #333;
 }
 
-@media (min-width: 768px) {
-  #home {
-    height: 100vh;
-  }
-
-  .home-container {
-    padding: 0 2rem;
-  }
-
-  .search-box {
-    margin-top: 20rem;
-    padding: 1rem 9rem;
-    width: auto;
-  }
-
-  .search-field {
-    font-size: 1rem;
-  }
-}
-
-.sep-1 {
+/* Suggestion Dropdown */
+.search-dropdown {
   position: absolute;
-  bottom: 0;
+  top: 115%;
   left: 0;
   width: 100%;
-  z-index: 1;
-  display: block;
-}
-
-#tempat-section {
-  width: 100%;
-  min-height: 120vh;
-  padding: 5rem 1rem;
-  position: relative;
+  background: white;
+  border-radius: 15px;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
   overflow: hidden;
+  text-align: left;
+  z-index: 100;
 }
 
-.content-wrapper {
-  position: relative;
-  z-index: 10;
-  margin-left: auto;
-  margin-right: auto;
-  max-width: 1152px;
-  padding-left: 1rem;
-  padding-right: 1rem;
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 20px;
+  cursor: pointer;
+  border-bottom: 1px solid #f0f0f0;
+  transition: 0.2s;
 }
 
-#tempat-section .main-title {
-  font-size: 2.25rem;
-  font-weight: 500;
-  text-align: center;
-  color: var(--color-primary-dark);
-  margin-bottom: 4rem;
+.dropdown-item:hover {
+  background: #f0f9ff;
 }
 
-@media (min-width: 768px) {
-  #tempat-section .main-title {
-    font-size: 3rem;
-  }
+.dropdown-item .thumb {
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  margin-right: 15px;
+  object-fit: cover;
 }
 
-.card-grid {
+/* --- TEMPAT POPULER --- */
+.grid-3 {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 2rem;
-  margin-bottom: 4rem;
-}
-
-@media (min-width: 768px) {
-  .card-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 30px;
 }
 
 .card {
-  background-color: #ffffff;
-  border-radius: 1rem;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  background: white;
+  border-radius: 16px;
   overflow: hidden;
-  transition: transform 0.3s ease;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+  transition: transform 0.3s;
+  border: 1px solid #eee;
+  cursor: pointer;
 }
 
 .card:hover {
-  transform: scale(1.05);
+  transform: translateY(-10px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
 }
 
-.card img {
-  width: 100%;
-  height: 13rem;
-  object-fit: cover;
-}
-
-.card-content {
-  padding: 1.5rem;
-}
-
-.card-content h2 {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #1a202c;
-  margin-bottom: 0.5rem;
-}
-
-.rating {
-  display: flex;
-  color: #0077b6;
-  margin-bottom: 0.75rem;
-}
-
-.rating svg {
-  width: 1.25rem;
-  height: 1.25rem;
-  fill: currentColor;
-}
-
-.card-content p {
-  font-size: 0.875rem;
-  color: #718096;
-}
-
-.button-container {
-  text-align: center;
-}
-
-.button-primary {
-  background-color: var(--color-primary-deep);
-  color: #ffffff;
-  font-weight: 600;
-  padding: 1rem 1.5rem;
-  border-radius: 15px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  transition: all 0.3s ease;
-  border: none;
-  cursor: pointer;
-  text-decoration: none;
-  display: inline-block;
-}
-
-.button-primary:hover {
-  background-color: var(--color-primary-dark);
-  transform: scale(1.05);
-}
-
-.sep-2 {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  z-index: 1;
-  display: block;
-}
-
-#tips-section {
+.card-img-wrap {
   position: relative;
-  width: 100%;
-  min-height: 120vh;
-  background-color: #ade8f4;
-  padding: 10rem 1rem;
-  overflow: hidden;
+  height: 220px;
 }
 
-#tips-section .sep-top,
-#tips-section .sep-bottom {
-  position: absolute;
-  left: 0;
-  width: 100%;
-  z-index: 1;
-  display: block;
-}
-
-#tips-section .sep-top {
-  top: 0;
-}
-
-#tips-section .sep-bottom {
-  bottom: 0;
-}
-
-#tips-section .main-title {
-  font-size: 2.25rem;
-  font-weight: 700;
-  text-align: center;
-  color: #023e8a;
-  margin-bottom: 4rem;
-}
-
-@media (min-width: 768px) {
-  #tips-section .main-title {
-    font-size: 3rem;
-  }
-}
-
-.tips-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 1.5rem;
-  margin-bottom: 4rem;
-}
-
-@media (min-width: 640px) {
-  .tips-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (min-width: 1024px) {
-  .tips-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
-.tip-card {
-  background-color: #ffffff;
-  border-radius: 0.75rem;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-  overflow: hidden;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-  padding: 1.5rem;
-  border-left: 5px solid var(--color-primary-deep);
-}
-
-.tip-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
-}
-
-.tip-card h3 {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: #023e8a;
-  margin-bottom: 0.75rem;
-}
-
-.tip-card p {
-  font-size: 0.9rem;
-  color: #5a5a5a;
-  line-height: 1.6;
-}
-
-#lomba-section {
-  width: 100%;
-  min-height: 100vh;
-  padding: 80px 20px;
-}
-
-#lomba-section .main-title {
-  font-size: 2.5rem;
-  font-weight: 800;
-  text-align: center;
-  color: #023e8a;
-  margin-bottom: 60px;
-  letter-spacing: -0.5px;
-}
-
-.lomba-card {
-  display: flex;
-  flex-direction: column;
-  background-color: #ffffff;
-  border-radius: 20px;
-  box-shadow: 0 4px 20px rgba(2, 62, 138, 0.08);
-  margin-bottom: 40px;
-  overflow: hidden;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.lomba-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 30px rgba(2, 62, 138, 0.15);
-}
-
-.lomba-image {
-  width: 100%;
-  height: 280px;
-  overflow: hidden;
-}
-
-.lomba-image img {
+.card-img-wrap img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.3s ease;
 }
 
-.lomba-card:hover .lomba-image img {
-  transform: scale(1.05);
-}
-
-.lomba-details {
-  padding: 32px;
-  overflow-y: auto;
-  max-height: 600px;
-}
-
-.lomba-badge {
-  display: inline-block;
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: #0077b6;
-  background-color: #e3f2fd;
-  padding: 6px 14px;
+.badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 5px 12px;
   border-radius: 20px;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-  margin-bottom: 12px;
+  font-size: 0.8rem;
+  font-weight: bold;
+  color: #023e8a;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
-.lomba-title {
-  font-size: 1.75rem;
-  font-weight: 700;
-  color: #1a1a1a;
-  margin-bottom: 12px;
-  line-height: 1.3;
+.card-body {
+  padding: 24px;
 }
 
-.lomba-description {
-  font-size: 1rem;
-  color: #5a5a5a;
-  line-height: 1.7;
-  margin-bottom: 24px;
+.card-body h3 {
+  margin-bottom: 10px;
+  color: #333;
+  font-size: 1.3rem;
 }
 
-.detail-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
+.rating {
+  color: #ffb703;
+  margin-bottom: 10px;
+  font-weight: bold;
+  font-size: 0.9rem;
 }
 
-.detail-list li {
+.location {
+  color: #666;
+  font-size: 0.9rem;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
+  gap: 5px;
+}
+
+.center-btn {
+  text-align: center;
+  margin-top: 40px;
+}
+
+.btn-main {
+  background: #023e8a;
+  color: white;
+  padding: 14px 35px;
+  border-radius: 30px;
+  border: none;
+  font-weight: bold;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.btn-main:hover {
+  background: #00509d;
+  transform: translateY(-3px);
+}
+
+/* --- TIPS & TRICK CAROUSEL --- */
+/* ===========================
+   TIPS & TRICK CAROUSEL — FIX
+   =========================== */
+.bg-tips {
+  background: #eef7ff;
+}
+
+/* Wajib: bungkus slide biar tidak ngaco */
+:deep(.carousel__slide) {
+  display: flex;
+  justify-content: center;
+}
+
+/* ===========================
+   DESKTOP VERSION (asli)
+   =========================== */
+
+.tip-card-carousel {
+  background: white;
+  border-radius: 20px;
+  padding: 30px;
+  margin: 15px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.03);
+  transition: 0.3s;
+  text-align: center;
+  height: 320px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.tip-img-box {
+  width: 80px;
+  height: 80px;
+  background: #e0f2fe;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.tip-emoji {
+  font-size: 2.5rem;
+}
+
+.tip-content h3 {
+  font-size: 1.3rem;
+}
+
+.tip-content p {
   font-size: 0.95rem;
-  color: #333333;
-  margin-bottom: 14px;
-  line-height: 1.6;
 }
 
-.detail-list li:last-child {
-  margin-bottom: 0;
+/* Pagination spacing desktop */
+:deep(.carousel) {
+  padding-bottom: 40px;
 }
 
-.detail-list .icon {
-  width: 20px;
-  height: 20px;
-  color: #0077b6;
-  flex-shrink: 0;
-  margin-right: 14px;
-  margin-top: 2px;
+:deep(.carousel__pagination) {
+  margin-top: 40px;
 }
 
-@media (min-width: 768px) {
-  #lomba-section .main-title {
-    font-size: 3rem;
-    margin-bottom: 80px;
+
+
+
+
+/* ===========================
+   MOBILE VERSION (fix penuh)
+   =========================== */
+@media (max-width: 768px) {
+
+  /* slide center */
+  :deep(.carousel__slide) {
+    display: flex;
+    justify-content: center;
   }
 
-  .lomba-details {
-    padding: 40px;
+  /* Card mobile */
+  .tip-card-carousel {
+    padding: 22px !important;
+    margin: 10px;
+    width: 100%;
+    max-width: 240px;
+    /* ⬅️ supaya tidak melebar */
+    min-height: 240px;
+    height: auto !important;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.03);
+    border-radius: 20px;
   }
 
-  .lomba-title {
+  .tip-img-box {
+    width: 60px;
+    height: 60px;
+    margin-bottom: 15px;
+  }
+
+  .tip-emoji {
     font-size: 2rem;
   }
 
-  .lomba-description {
-    font-size: 1.05rem;
+  .tip-content h3 {
+    font-size: 1.1rem;
   }
 
-  .detail-list li {
-    font-size: 1rem;
+  .tip-content p {
+    font-size: 0.9rem;
+    line-height: 1.4;
+  }
+
+  /* Pagination mobile */
+  :deep(.carousel) {
+    padding-bottom: 20px !important;
+  }
+
+  :deep(.carousel__pagination) {
+    margin-top: 15px !important;
+  }
+
+  /* Dot style mobile */
+  :deep(.carousel__pagination-button::after) {
+    width: 7px;
+    height: 7px;
+  }
+
+  :deep(.carousel__pagination-button--active::after) {
+    transform: scale(1.3);
+  }
+
+  /* Hide navigation di mobile (supaya rapi) */
+  :deep(.carousel__prev),
+  :deep(.carousel__next) {
+    display: none !important;
   }
 }
 
-@media (min-width: 1024px) {
-  #lomba-section {
-    padding: 100px 40px;
-  }
+/* --- LOMBA SECTION --- */
+.lomba-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
 
-  .lomba-card {
+.lomba-card-pro {
+  background: white;
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+  border: 1px solid #f0f0f0;
+  display: flex;
+  flex-direction: column;
+}
+
+.lomba-header {
+  position: relative;
+  height: 250px;
+  overflow: hidden;
+}
+
+.lomba-header img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: 0.5s;
+}
+
+.lomba-card-pro:hover .lomba-header img {
+  transform: scale(1.05);
+}
+
+.lomba-badge {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-weight: 800;
+  font-size: 0.8rem;
+  letter-spacing: 1px;
+  color: white;
+}
+
+.nasional {
+  background: #e11d48;
+}
+
+.regional {
+  background: #0284c7;
+}
+
+.lomba-body {
+  padding: 30px;
+}
+
+.lomba-body h3 {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: #1e293b;
+  margin-bottom: 10px;
+}
+
+.lomba-body .desc {
+  color: #64748b;
+  margin-bottom: 25px;
+  line-height: 1.6;
+}
+
+.lomba-details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 15px;
+}
+
+.detail-box {
+  background: #f8fafc;
+  padding: 12px;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  border: 1px solid #e2e8f0;
+}
+
+.detail-box.highlight {
+  background: #fff7ed;
+  border-color: #ffedd5;
+}
+
+.detail-box .label {
+  font-size: 0.8rem;
+  color: #94a3b8;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.detail-box strong {
+  font-size: 1rem;
+  color: #334155;
+}
+
+.highlight strong {
+  color: #d97706;
+}
+
+/* --- DESKTOP LAYOUT LOMBA --- */
+@media (min-width: 992px) {
+  .lomba-card-pro {
     flex-direction: row;
-    height: 420px;
+    height: 400px;
   }
 
-  .lomba-image {
-    width: 45%;
+  .lomba-header {
+    width: 40%;
     height: 100%;
   }
 
-  .lomba-details {
-    width: 55%;
-    padding: 48px;
+  .lomba-body {
+    width: 60%;
+    padding: 40px;
     display: flex;
     flex-direction: column;
-    justify-content: flex-start;
-    max-height: 420px;
+    justify-content: center;
+  }
+}
+
+/* --- RESPONSIVE MOBILE FIXES (≤ 480px) --- */
+@media (max-width: 480px) {
+
+  /* HERO SECTION */
+  .hero-section {
+    height: 75vh;
+    min-height: 500px;
+    padding: 0 20px;
   }
 
-  .lomba-details::-webkit-scrollbar {
-    width: 8px;
+  .hero-title {
+    font-size: 2rem;
+    line-height: 1.3;
   }
 
-  .lomba-details::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 10px;
+  .hero-subtitle {
+    font-size: 0.9rem;
+    padding: 6px 14px;
   }
 
-  .lomba-details::-webkit-scrollbar-thumb {
-    background: #0077b6;
-    border-radius: 10px;
+  .search-box {
+    padding: 12px 18px;
   }
 
-  .lomba-details::-webkit-scrollbar-thumb:hover {
-    background: #023e8a;
+  .search-icon {
+    font-size: 1rem;
+    margin-right: 10px;
   }
 
-  .lomba-title {
-    font-size: 2.25rem;
-    margin-bottom: 20px;
+  .search-field {
+    font-size: 0.9rem;
   }
 
-  .lomba-description {
-    margin-bottom: 32px;
+  /* GRID TEMPAT POPULER */
+  .grid-3 {
+    grid-template-columns: 1fr;
+    gap: 20px;
   }
 
-  .detail-list li {
-    margin-bottom: 16px;
+  .card-img-wrap {
+    height: 180px;
+  }
+
+  .card-body h3 {
+    font-size: 1.1rem;
+  }
+
+  .rating,
+  .location {
+    font-size: 0.85rem;
+  }
+
+  /* CAROUSEL */
+  .tip-card-carousel {
+    height: auto;
+    padding: 20px;
+    margin: 10px;
+  }
+
+  .tip-img-box {
+    width: 60px;
+    height: 60px;
+    margin-bottom: 15px;
+  }
+
+  .tip-emoji {
+    font-size: 2rem;
+  }
+
+  .tip-content h3 {
+    font-size: 1.1rem;
+  }
+
+  .tip-content p {
+    font-size: 0.9rem;
+  }
+
+  :deep(.carousel__pagination) {
+    margin-top: 20px;
+  }
+
+  /* LOMBA SECTION */
+  .lomba-header {
+    height: 180px;
+  }
+
+  .lomba-body {
+    padding: 20px;
+  }
+
+  .lomba-body h3 {
+    font-size: 1.3rem;
+  }
+
+  .lomba-body .desc {
+    font-size: 0.9rem;
+  }
+
+  .lomba-details-grid {
+    grid-template-columns: 1fr;
   }
 }
 </style>
