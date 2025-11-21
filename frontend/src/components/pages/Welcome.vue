@@ -5,23 +5,14 @@
       <form>
         <div class="search-box" @click.self="toggleOverlay(false)">
           <font-awesome-icon icon="fa-solid fa-magnifying-glass" />
-          <input 
-            type="text" 
-            name="tempat" 
-            placeholder="Mau memancing dimana hari ini?" 
-            class="search-field"
-            @focus="toggleOverlay(true)"
-          />
+          <input type="text" name="tempat" placeholder="Mau memancing dimana hari ini?" class="search-field"
+            @focus="toggleOverlay(true)" />
 
           <!-- Overlay muncul di bawah search -->
           <div v-if="showOverlay" class="overlay-suggestion">
             <h3>Rekomendasi Tempat Memancing</h3>
             <div class="overlay-grid">
-              <div 
-                v-for="(item, index) in tempatList" 
-                :key="index" 
-                class="overlay-card"
-              >
+              <div v-for="(item, index) in tempatList" :key="index" class="overlay-card">
                 <img :src="item.gambar" :alt="item.nama">
                 <div class="info">
                   <h4>{{ item.nama }}</h4>
@@ -50,7 +41,8 @@
         <div class="card">
           <img src="../../assets/img/tempat-pemancingan/tempat1.avif" alt="Alaska Fishing">
           <div class="card-content">
-            <h2><font-awesome-icon icon="fa-solid fa-location-dot" style="color: #48cae4;" size="sm" />Alaska Fishing</h2>
+            <h2><font-awesome-icon icon="fa-solid fa-location-dot" style="color: #48cae4;" size="sm" />Alaska Fishing
+            </h2>
             <!-- Rating Bintang -->
             <div class="rating">
               <font-awesome-icon icon="fa-solid fa-star" style="color: #48cae4;" />
@@ -132,7 +124,7 @@
     </div>
     <img src="../../assets/img/separator/wave-3.svg" alt="Separator Bawah" class="sep-bottom">
   </section>
- 
+
   <!-- Section Lomba -->
   <section id="lomba-section">
     <div class="content-wrapper">
@@ -142,10 +134,7 @@
       <!-- Competition Card 1 -->
       <div class="lomba-card">
         <div class="lomba-image">
-          <img 
-            src="../../assets/img/tempat-pemancingan/lomba1.avif" 
-            alt="Suasana lomba memancing 1"
-          >
+          <img src="../../assets/img/tempat-pemancingan/lomba1.avif" alt="Suasana lomba memancing 1">
         </div>
         <div class="lomba-details">
           <span class="lomba-badge">LOMBA 1</span>
@@ -181,10 +170,7 @@
       <!-- Competition Card 2 -->
       <div class="lomba-card">
         <div class="lomba-image">
-          <img 
-            src="../../assets/img/tempat-pemancingan/lomba2.avif" 
-            alt="Suasana lomba memancing 2"
-          >
+          <img src="../../assets/img/tempat-pemancingan/lomba2.avif" alt="Suasana lomba memancing 2">
         </div>
         <div class="lomba-details">
           <span class="lomba-badge">LOMBA 2</span>
@@ -292,13 +278,13 @@ const slides = [
 <style scoped>
 #home {
   height: 85vh;
-  position: relative; 
-  overflow: hidden; 
+  position: relative;
+  overflow: hidden;
 }
 
 .background {
   width: 100%;
-  height: 100%; 
+  height: 100%;
   position: absolute;
   object-fit: cover;
   z-index: -9999;
@@ -307,7 +293,7 @@ const slides = [
 .home-container {
   display: flex;
   justify-content: center;
-  position: relative; 
+  position: relative;
   z-index: 1;
   padding: 0 1.5rem;
   box-sizing: border-box;
@@ -399,7 +385,7 @@ const slides = [
   #home {
     height: 100vh;
   }
-  
+
   .home-container {
     padding: 0 2rem;
   }
@@ -416,18 +402,18 @@ const slides = [
 }
 
 .sep-1 {
-  position: absolute; 
-  bottom: 0; 
-  left: 0; 
-  width: 100%; 
-  z-index: 1; 
-  display: block; 
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  z-index: 1;
+  display: block;
 }
 
 #tempat-section {
   width: 100%;
   min-height: 120vh;
-  padding: 5rem 1rem; 
+  padding: 5rem 1rem;
   position: relative;
   overflow: hidden;
 }
@@ -437,17 +423,17 @@ const slides = [
   z-index: 10;
   margin-left: auto;
   margin-right: auto;
-  max-width: 1152px; 
+  max-width: 1152px;
   padding-left: 1rem;
   padding-right: 1rem;
 }
 
 #tempat-section .main-title {
-  font-size: 2.25rem; 
-  font-weight: 500; 
+  font-size: 2.25rem;
+  font-weight: 500;
   text-align: center;
   color: var(--color-primary-dark);
-  margin-bottom: 4rem; 
+  margin-bottom: 4rem;
 }
 
 @media (min-width: 768px) {
@@ -522,9 +508,9 @@ const slides = [
 .button-primary {
   background-color: var(--color-primary-deep);
   color: #ffffff;
-  font-weight: 600; 
-  padding: 1rem 1.5rem; 
-  border-radius: 15px; 
+  font-weight: 600;
+  padding: 1rem 1.5rem;
+  border-radius: 15px;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   transition: all 0.3s ease;
   border: none;
@@ -539,24 +525,24 @@ const slides = [
 }
 
 .sep-2 {
-  position: absolute; 
-  bottom: 0; 
-  left: 0; 
-  width: 100%; 
-  z-index: 1; 
-  display: block; 
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  z-index: 1;
+  display: block;
 }
 
 #tips-section {
   position: relative;
   width: 100%;
   min-height: 120vh;
-  background-color: #ade8f4; 
-  padding: 10rem 1rem; 
+  background-color: #ade8f4;
+  padding: 10rem 1rem;
   overflow: hidden;
 }
 
-#tips-section .sep-top, 
+#tips-section .sep-top,
 #tips-section .sep-bottom {
   position: absolute;
   left: 0;
@@ -790,21 +776,21 @@ const slides = [
     justify-content: flex-start;
     max-height: 420px;
   }
-  
+
   .lomba-details::-webkit-scrollbar {
     width: 8px;
   }
-  
+
   .lomba-details::-webkit-scrollbar-track {
     background: #f1f1f1;
     border-radius: 10px;
   }
-  
+
   .lomba-details::-webkit-scrollbar-thumb {
     background: #0077b6;
     border-radius: 10px;
   }
-  
+
   .lomba-details::-webkit-scrollbar-thumb:hover {
     background: #023e8a;
   }

@@ -1,7 +1,7 @@
 import { createApp } from "vue";
-import "./style.css"; // ✅ CSS sudah di-import
+import "./style.css";
 import App from "./App.vue";
-import router from "./router"; // ✅ Router sudah di-import
+import router from "./router";
 
 /* import the fontawesome core */
 import { library } from "@fortawesome/fontawesome-svg-core";
@@ -18,7 +18,16 @@ import {
   faCoins,
   faTrophy,
   faScaleBalanced,
+  faEye,
+  faEyeSlash,
+  faLightbulb,
+  faCircleExclamation,
+  faRightFromBracket,
 } from "@fortawesome/free-solid-svg-icons";
+
+import { faClock } from "@fortawesome/free-regular-svg-icons";
+
+/* add icons to the library */
 library.add(
   faMagnifyingGlass,
   faStar,
@@ -27,6 +36,11 @@ library.add(
   faCoins,
   faTrophy,
   faScaleBalanced,
+  faEye,
+  faEyeSlash,
+  faLightbulb,
+  faCircleExclamation,
+  faRightFromBracket,
 );
 
 const app = createApp(App);

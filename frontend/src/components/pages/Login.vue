@@ -1,79 +1,81 @@
 <template>
-  <main class="login-container">
-    <div class="login-card">
-      <h2>Login</h2>
+  <div class="login-page">
+    <div class="login-container">
+      <div class="login-card">
+        <div class="card-header">
+          <h2 class="login-title">Selamat Datang Kembali</h2>
+          <p class="login-subtitle">
+            Masuk untuk mulai petualangan mancingmu. <br>
+            Belum punya akun? <span class="link-signup" @click="$router.push('/signup')">Daftar di sini</span>
+          </p>
+        </div>
 
-      <div v-if="errorMessage" class="error-message">
-        {{ errorMessage }}
+        <div class="form-wrapper">
+          <div v-if="errorMessage" class="error-alert">
+            <span>{{ errorMessage }}</span>
+          </div>
+
+          <div class="form-group">
+            <label>Email</label>
+            <input v-model="email" type="email" placeholder="nama@email.com" class="form-input"
+              @keyup.enter="handleLogin" />
+          </div>
+
+          <div class="form-group">
+            <label>Password</label>
+            <div class="input-password-wrapper">
+              <input v-model="password" :type="showPassword ? 'text' : 'password'" placeholder="Masukkan password"
+                class="form-input" @keyup.enter="handleLogin" />
+              <button type="button" class="toggle-btn" @click="showPassword = !showPassword">
+                <font-awesome-icon :icon="showPassword ? ['fas', 'eye-slash'] : ['fas', 'eye']" />
+              </button>
+            </div>
+            <div class="forgot-password">
+              <span @click="$router.push('/forgot-password')" style="cursor:pointer;">
+                <a href="#">Lupa Password?</a>
+              </span>
+            </div>
+          </div>
+
+          <button class="btn-submit" @click="handleLogin" :disabled="isLoading">
+            {{ isLoading ? 'Memproses...' : 'Masuk' }}
+          </button>
+
+        </div>
       </div>
-
-      <div class="input-group">
-        <input 
-          type="email" 
-          placeholder="Email" 
-          v-model="email" 
-        />
-      </div>
-
-      <div class="input-group">
-        <input 
-          type="password" 
-          placeholder="Password" 
-          v-model="password"
-          @keyup.enter="handleLogin"
-        />
-      </div>
-
-      <div class="forgot">
-        <a href="#">Forget Password?</a>
-      </div>
-
-      <button 
-        class="login-btn" 
-        @click="handleLogin"
-        :disabled="isLoading"
-      >
-        {{ isLoading ? 'Loading...' : 'Login' }}
-      </button>
-
-      <p class="or">Or Sign Up</p>
-      
-      <div class="bubble bubble1"></div>
-      <div class="bubble bubble2"></div>
-      <div class="bubble bubble3"></div>
-      <div class="bubble bubble4"></div>
-      <div class="bubble bubble5"></div>
     </div>
-  </main>
+  </div>
 </template>
 
 <script>
 export default {
   name: "LoginPage",
-
   data() {
     return {
       email: "",
       password: "",
-      errorMessage: null, // Menyimpan pesan error
-      isLoading: false,   // Status loading tombol
+      showPassword: false,
+      errorMessage: null,
+      isLoading: false,
     };
   },
-
   methods: {
     async handleLogin() {
-      // Reset state
       this.isLoading = true;
       this.errorMessage = null;
 
+      // Validasi Frontend Sederhana
+      if (!this.email || !this.password) {
+        this.errorMessage = "Email dan Password wajib diisi";
+        this.isLoading = false;
+        return;
+      }
+
       try {
-        // 1. Kirim request ke Backend
-        // Pastikan URL sesuai dengan prefix '/auth' yang sudah kita refactor
+        // Telepon Backend
         const response = await fetch("http://localhost:3000/auth/login", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             email: this.email,
             password: this.password,
@@ -82,22 +84,19 @@ export default {
 
         const data = await response.json();
 
-        // 2. Cek jika gagal (status bukan 200-299)
         if (!response.ok) {
-          throw new Error(data.message || "Gagal login");
+          throw new Error(data.message || "Email atau password salah");
         }
 
-        // 3. Jika Sukses
         console.log("Login Berhasil:", data);
 
-        // Simpan Token di LocalStorage
+        // Simpan Tiket (Token)
         localStorage.setItem("kailku_token", data.token);
 
-        // Pindah ke halaman utama (atau halaman lain)
+        // Pindah ke Home
         this.$router.push("/");
 
       } catch (err) {
-        console.error(err);
         this.errorMessage = err.message;
       } finally {
         this.isLoading = false;
@@ -108,141 +107,185 @@ export default {
 </script>
 
 <style scoped>
-/* ===== Reset dan font dasar ===== */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-  font-family: "Poppins", sans-serif;
-}
-
-body {
-  background-color: #f8f9fb;
-}
-
-/* ===== Error Message Style ===== */
-.error-message {
-  background-color: #ffebee;
-  color: #c62828;
-  padding: 10px;
-  border-radius: 8px;
-  margin-bottom: 15px;
-  font-size: 14px;
-  font-weight: 600;
-  border: 1px solid #ef9a9a;
-}
-
-/* ===== Kontainer Login ===== */
-.login-container {
+/* --- Layout Utama --- */
+.login-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
   display: flex;
-  justify-content: center;
   align-items: center;
-  height: 85vh;
+  justify-content: center;
+  padding: 2rem 1rem;
+  font-family: 'Poppins', sans-serif;
 }
 
-/* ===== Kartu Login ===== */
-.login-card {
-  position: relative;
-  background: white;
-  width: 340px;
-  padding: 40px 30px;
-  border-radius: 10px;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-  text-align: center;
-  overflow: hidden; /* Agar bubble tidak keluar */
-}
-
-.login-card h2 {
-  margin-bottom: 20px;
-  font-size: 24px;
-  font-weight: bold;
-  position: relative;
-  z-index: 2;
-}
-
-/* ===== Input ===== */
-.input-group {
-  margin-bottom: 15px;
-  position: relative;
-  z-index: 2;
-}
-
-.input-group input {
+.login-container {
   width: 100%;
-  padding: 10px;
-  border: none;
-  border-radius: 8px;
-  background-color: #4ac8eb;
-  color: white;
+  max-width: 450px;
+}
+
+/* --- Card Style --- */
+.login-card {
+  background: #ffffff;
+  border-radius: 24px;
+  padding: 40px;
+  box-shadow: 0 20px 50px rgba(2, 62, 138, 0.08);
+  border: 1px solid #f1f5f9;
+}
+
+/* --- Header --- */
+.card-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.login-title {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: #023e8a;
+  margin-bottom: 8px;
+}
+
+.login-subtitle {
+  color: #64748b;
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.link-signup {
+  color: #0077b6;
   font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  transition: color 0.2s;
+}
+
+.link-signup:hover {
+  color: #023e8a;
+}
+
+/* --- Form Elements --- */
+.form-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #334155;
+  margin-bottom: 6px;
+}
+
+.form-input {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid #cbd5e1;
+  background-color: #f8fafc;
+  font-size: 0.95rem;
+  color: #333;
+  transition: all 0.3s ease;
   outline: none;
 }
 
-.input-group input::placeholder {
-  color: white;
-  opacity: 0.8;
+.form-input:focus {
+  border-color: #0077b6;
+  background-color: #fff;
+  box-shadow: 0 0 0 4px rgba(0, 119, 182, 0.1);
 }
 
-/* ===== Link Lupa Password ===== */
-.forgot {
-  text-align: right;
-  margin-bottom: 15px;
+/* Error Alert */
+.error-alert {
+  background-color: #fef2f2;
+  color: #ef4444;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #fee2e2;
+}
+
+/* Password Toggle */
+.input-password-wrapper {
   position: relative;
-  z-index: 2;
 }
 
-.forgot a {
-  font-size: 12px;
-  color: #000;
+.toggle-btn {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.toggle-btn:hover {
+  color: #0077b6;
+}
+
+.forgot-password {
+  text-align: right;
+  margin-top: 8px;
+}
+
+.forgot-password a {
+  font-size: 0.8rem;
+  color: #64748b;
   text-decoration: none;
-  font-weight: 500;
 }
 
-/* ===== Tombol Login ===== */
-.login-btn {
+.forgot-password a:hover {
+  color: #0077b6;
+}
+
+/* Buttons */
+.btn-submit {
+  margin-top: 10px;
   width: 100%;
-  background-color: #000b67;
+  padding: 14px;
+  background-color: #023e8a;
   color: white;
   border: none;
-  padding: 10px;
-  border-radius: 8px;
+  border-radius: 50px;
+  font-size: 1rem;
+  font-weight: 700;
   cursor: pointer;
-  font-weight: bold;
-  position: relative;
-  z-index: 2;
-  transition: background-color 0.3s;
+  transition: all 0.3s ease;
+  box-shadow: 0 10px 20px rgba(2, 62, 138, 0.15);
 }
 
-.login-btn:hover {
-  background-color: #001080;
+.btn-submit:hover {
+  background-color: #00509d;
+  transform: translateY(-2px);
+  box-shadow: 0 15px 25px rgba(2, 62, 138, 0.25);
 }
 
-.login-btn:disabled {
-  background-color: #ccc;
+.btn-submit:disabled {
+  background-color: #94a3b8;
   cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
-/* ===== Teks Or ===== */
-.or {
-  margin-top: 20px;
-  font-size: 12px;
-  color: #000;
-  position: relative;
-  z-index: 2;
-}
+/* Responsive */
+@media (max-width: 640px) {
+  .login-card {
+    padding: 24px;
+  }
 
-/* ===== Dekorasi bulatan ===== */
-.bubble {
-  position: absolute;
-  background-color: #b0ecff;
-  border-radius: 50%;
-  opacity: 0.6;
-  z-index: 1;
+  .login-title {
+    font-size: 1.5rem;
+  }
 }
-
-.bubble1 { width: 20px; height: 20px; top: 10px; left: 20px; }
-.bubble2 { width: 30px; height: 30px; bottom: 25px; left: 35px; }
-.bubble3 { width: 40px; height: 40px; bottom: 25px; right: 40px; }
-.bubble4 { width: 25px; height: 25px; top: 15px; right: 40px; }
-.bubble5 { width: 35px; height: 35px; bottom: 15px; right: 120px; }
 </style>

@@ -2,63 +2,90 @@
 
 /**
  * Mendefinisikan rute untuk modul Booking (Pemesanan Tempat).
- * Modul ini menangani pembuatan, pengambilan riwayat, dan pembatalan booking.
  */
 async function bookingRoutes(fastify, options) {
+  // --- Helper: Hitung Jam Selesai ---
+  function calculateEndTime(startTime, duration) {
+    if (!startTime || !duration) return "00:00:00";
+    const [hours, minutes] = startTime.split(":").map(Number);
+    const endHours = hours + Number(duration);
+    return `${String(endHours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+  }
+
   // ==================================================
-  // 1. Endpoint: Buat Booking Baru
-  // Method: POST
-  // URL Akses: http://localhost:3000/bookings/
-  // Syarat: Memerlukan Token JWT
+  // 1. Endpoint: Buat Booking Baru (LENGKAP DENGAN JAM)
   // ==================================================
   fastify.post(
     "/",
     {
-      preHandler: [fastify.authenticate], // Middleware: Cek Token
+      preHandler: [fastify.authenticate],
     },
     async (request, reply) => {
-      const { tempat_id, tanggal_booking } = request.body;
-      const user_id = request.user.id; // Ambil ID dari token
+      // Ambil semua data dari Frontend
+      const { tempat_id, tanggal_booking, no_kursi, start_time, duration } =
+        request.body;
+      const user_id = request.user.id;
 
-      // Validasi Input
-      if (!tempat_id || !tanggal_booking) {
+      // Validasi Kelengkapan Data
+      if (
+        !tempat_id ||
+        !tanggal_booking ||
+        !no_kursi ||
+        !start_time ||
+        !duration
+      ) {
         return reply
           .status(400)
-          .send({ message: "Tempat dan tanggal wajib diisi " });
+          .send({ message: "Data booking tidak lengkap (Jam/Durasi/Kursi)" });
       }
+
+      // Hitung jam selesai otomatis
+      const end_time = calculateEndTime(start_time, duration);
 
       let connection;
       try {
         connection = await fastify.mysql.getConnection();
 
-        // Eksekusi Query Insert
+        // Cek Bentrok Terakhir (Safety Net - Biar ga tabrakan pas submit barengan)
+        const [existing] = await connection.query(
+          `SELECT id FROM bookings 
+             WHERE tempat_id = ? AND no_kursi = ? AND tanggal_booking = ?
+             AND (start_time < ? AND end_time > ?)`,
+          [tempat_id, no_kursi, tanggal_booking, end_time, start_time],
+        );
+
+        if (existing.length > 0) {
+          connection.release();
+          return reply.status(409).send({
+            message: `Kursi ${no_kursi} sudah terisi di jam tersebut.`,
+          });
+        }
+
+        // INSERT LENGKAP (Dengan start_time & end_time)
         const [result] = await connection.query(
-          "INSERT INTO bookings (user_id, tempat_id, tanggal_booking) VALUES (?, ?, ?)",
-          [user_id, tempat_id, tanggal_booking],
+          "INSERT INTO bookings (user_id, tempat_id, no_kursi, tanggal_booking, start_time, end_time) VALUES (?, ?, ?, ?, ?, ?)",
+          [user_id, tempat_id, no_kursi, tanggal_booking, start_time, end_time],
         );
 
         connection.release();
 
-        // Mengembalikan data booking yang baru dibuat beserta ID-nya
         return reply.status(201).send({
           id: result.insertId,
-          user_id: user_id,
-          tempat_id: tempat_id,
-          tanggal_booking: tanggal_booking,
+          user_id,
+          tempat_id,
+          no_kursi,
+          tanggal_booking,
         });
       } catch (err) {
         if (connection) connection.release();
         fastify.log.error(err);
-        reply.status(500).send({ message: "Terjadi kesalahan pada server" });
+        reply.status(500).send({ message: "Gagal menyimpan booking" });
       }
     },
   );
 
   // ==================================================
   // 2. Endpoint: Riwayat Booking Saya
-  // Method: GET
-  // URL Akses: http://localhost:3000/bookings/my
-  // Deskripsi: Mengambil daftar booking milik user yang sedang login.
   // ==================================================
   fastify.get(
     "/my",
@@ -67,13 +94,9 @@ async function bookingRoutes(fastify, options) {
     },
     async (request, reply) => {
       const user_id = request.user.id;
-
       let connection;
       try {
         connection = await fastify.mysql.getConnection();
-
-        // Menggunakan JOIN untuk menggabungkan tabel 'bookings' dan 'tempat_mancing'.
-        // Tujuannya agar frontend mendapatkan Nama Tempat & Lokasi, bukan cuma ID-nya.
         const [rows] = await connection.query(
           `SELECT
             b.*,
@@ -81,12 +104,11 @@ async function bookingRoutes(fastify, options) {
             t.lokasi AS lokasi_tempat
            FROM bookings AS b
            JOIN tempat_mancing AS t ON b.tempat_id = t.id
-           WHERE b.user_id = ?`,
+           WHERE b.user_id = ? 
+           ORDER BY b.id DESC`, // Urutkan dari yang terbaru
           [user_id],
         );
-
         connection.release();
-
         return rows;
       } catch (err) {
         if (connection) connection.release();
@@ -98,9 +120,6 @@ async function bookingRoutes(fastify, options) {
 
   // ==================================================
   // 3. Endpoint: Batalkan Booking
-  // Method: DELETE
-  // URL Akses: http://localhost:3000/bookings/my/:id
-  // Deskripsi: Menghapus booking spesifik, hanya jika milik user tersebut.
   // ==================================================
   fastify.delete(
     "/my/:id",
@@ -110,29 +129,20 @@ async function bookingRoutes(fastify, options) {
     async (request, reply) => {
       const user_id = request.user.id;
       const booking_id = request.params.id;
-
       let connection;
       try {
         connection = await fastify.mysql.getConnection();
-
-        // Menghapus data dengan validasi ganda:
-        // 1. ID Booking harus sesuai (id = ?)
-        // 2. Pemilik harus user yang login (user_id = ?)
         const [results] = await connection.query(
           "DELETE FROM bookings WHERE id = ? AND user_id = ?",
           [booking_id, user_id],
         );
-
         connection.release();
 
-        // Jika affectedRows 0, berarti data tidak ditemukan atau bukan milik user
         if (results.affectedRows === 0) {
           return reply.status(404).send({
             message: "Booking tidak ditemukan atau Anda tidak memiliki izin",
           });
         }
-
-        // Status 204 (No Content) menandakan penghapusan berhasil
         return reply.status(204).send();
       } catch (err) {
         if (connection) connection.release();
@@ -141,6 +151,70 @@ async function bookingRoutes(fastify, options) {
       }
     },
   );
+
+  // ==================================================
+  // 4. Endpoint: Cek Kursi Sibuk (Global Filter)
+  // ==================================================
+  fastify.get("/check-seats", async (request, reply) => {
+    // Frontend kirim 'tanggal' (bukan tanggal_booking), kita mapping di query SQL
+    const { tempat_id, tanggal, start, durasi } = request.query;
+
+    if (!tempat_id || !tanggal) return { bookedSeats: [] };
+
+    let connection;
+    try {
+      connection = await fastify.mysql.getConnection();
+
+      // Base Query
+      let query =
+        "SELECT no_kursi FROM bookings WHERE tempat_id = ? AND tanggal_booking = ?";
+      const params = [tempat_id, tanggal]; // Pakai 'tanggal' dari query string
+
+      // Filter bentrok jam (jika parameter jam dikirim)
+      if (start && durasi) {
+        const reqStart = start;
+        const reqEnd = calculateEndTime(start, durasi);
+
+        // Logika: (StartDB < RequestEnd) AND (EndDB > RequestStart)
+        query += " AND (start_time < ? AND end_time > ?)";
+        params.push(reqEnd, reqStart);
+      }
+
+      const [rows] = await connection.query(query, params);
+      connection.release();
+
+      return { bookedSeats: rows.map((r) => r.no_kursi) };
+    } catch (err) {
+      if (connection) connection.release();
+      reply.status(500).send(err);
+    }
+  });
+
+  // ==================================================
+  // 5. Endpoint: Ambil Jadwal Spesifik (Smart Dropdown)
+  // ==================================================
+  fastify.get("/schedule", async (request, reply) => {
+    const { tempat_id, no_kursi, tanggal } = request.query;
+
+    let connection;
+    try {
+      connection = await fastify.mysql.getConnection();
+
+      // Ambil jam mulai & selesai dari kursi yang sedang dicek
+      const [rows] = await connection.query(
+        "SELECT start_time, end_time FROM bookings WHERE tempat_id = ? AND no_kursi = ? AND tanggal_booking = ?",
+        [tempat_id, no_kursi, tanggal],
+      );
+
+      connection.release();
+
+      // Balikin array jadwal: [{start_time: '10:00', end_time: '12:00'}, ...]
+      return rows;
+    } catch (err) {
+      if (connection) connection.release();
+      reply.status(500).send(err);
+    }
+  });
 }
 
 module.exports = bookingRoutes;

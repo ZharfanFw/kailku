@@ -17,7 +17,10 @@ const jwt = require("@fastify/jwt");
 // A. CORS (Cross-Origin Resource Sharing)
 // Mengizinkan Frontend (Vue.js) yang berjalan di port berbeda (misal 5173)
 // untuk mengakses Backend ini (port 3000). Tanpa ini, browser akan memblokir akses.
-fastify.register(require("@fastify/cors"), { origin: "*" });
+fastify.register(require("@fastify/cors"), {
+  origin: "*",
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+});
 
 // B. DATABASE (MySQL)
 // Mengatur koneksi ke database menggunakan kredensial dari file .env.
@@ -71,6 +74,12 @@ fastify.register(require("./routes/bookings"), { prefix: "/bookings" });
 
 // Menangani Transaksi Order Alat -> URL: /orders/...
 fastify.register(require("./routes/orders"), { prefix: "/orders" });
+
+// Menangani Review Tempat -> URL: /reviews/...
+fastify.register(require("./routes/reviews"), { prefix: "/reviews" });
+
+// Menangani Confirmation Payment -> URL: /payment/...
+fastify.register(require("./routes/payment"), { prefix: "/payment" });
 
 // ==================================================
 // 6. JALANKAN SERVER

@@ -1,508 +1,434 @@
 <template>
   <div class="memancing-section">
-    <!-- Search Bar -->
-    <div class="search-container">
-      <div class="search-box">
-        <svg
-          class="search-icon"
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-        >
-          <circle cx="11" cy="11" r="8"></circle>
-          <path d="m21 21-4.35-4.35"></path>
-        </svg>
-        <input
-          type="text"
-          v-model="searchQuery"
-          placeholder="Mau memancing dimana hari ini?"
-          class="search-input"
-        />
+    <div class="header-section">
+      <h1 class="page-title">Temukan Spot Terbaik</h1>
+      <p class="page-subtitle">Jelajahi berbagai lokasi pemancingan favorit di sekitarmu</p>
+    </div>
+
+    <div class="controls-wrapper">
+      <div class="search-container">
+        <div class="search-box">
+          <font-awesome-icon icon="fa-solid fa-magnifying-glass" class="search-icon" />
+          <input type="text" v-model="searchQuery" placeholder="Cari nama tempat atau lokasi..." class="search-input" />
+        </div>
+      </div>
+
+      <div class="filter-tabs">
+        <button v-for="filter in filters" :key="filter.id"
+          :class="['filter-tab', { active: selectedFilter === filter.id }]" @click="selectFilter(filter.id)">
+          {{ filter.label }}
+        </button>
       </div>
     </div>
 
-    <!-- Filter Tabs -->
-    <div class="filter-tabs">
-      <button
-        v-for="filter in filters"
-        :key="filter.id"
-        :class="['filter-tab', { active: selectedFilter === filter.id }]"
-        @click="selectFilter(filter.id)"
-      >
-        {{ filter.label }}
-      </button>
+    <div v-if="isLoading" class="loading-state">
+      <div class="spinner"></div>
+      <p>Memuat data tempat...</p>
     </div>
 
-    <!-- Fishing Places Grid -->
-    <div class="fishing-grid">
-      <div
-        v-for="place in paginatedPlaces"
-        :key="place.id"
-        class="fishing-card"
-        @click="selectPlace(place)"
-      >
-        <!-- Image -->
+    <div v-else-if="paginatedPlaces.length === 0" class="empty-state">
+      <img src="https://cdn-icons-png.flaticon.com/512/7486/7486744.png" alt="Kosong" width="80">
+      <h3>Tidak ada tempat ditemukan</h3>
+      <p>Coba ubah kata kunci pencarian atau filter kotamu.</p>
+      <button @click="resetFilters" class="btn-reset">Lihat Semua</button>
+    </div>
+
+    <div v-else class="fishing-grid">
+      <div v-for="place in paginatedPlaces" :key="place.id" class="fishing-card" @click="goToReview(place)">
         <div class="card-image">
-          <img :src="place.image" :alt="place.name" />
-          <div class="favorite-badge">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-              <path
-                d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
-              />
-            </svg>
+          <img :src="place.image" :alt="place.name" loading="lazy" />
+          <div class="category-badge">
+            <font-awesome-icon icon="fa-solid fa-location-dot" /> {{ place.city }}
           </div>
         </div>
 
-        <!-- Content -->
         <div class="card-content">
-          <!-- Title & Rating -->
           <div class="card-header">
             <h3 class="card-title">{{ place.name }}</h3>
             <div class="card-rating">
-              <svg
-                class="star-icon"
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-              >
-                <path
-                  d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
-                />
-              </svg>
+              <font-awesome-icon icon="fa-solid fa-star" class="star-icon" />
               <span class="rating-value">{{ place.rating }}</span>
             </div>
           </div>
 
-          <!-- Location -->
           <div class="card-location">
-            <svg
-              class="location-icon"
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-            >
-              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-              <circle cx="12" cy="10" r="3"></circle>
-            </svg>
             <span>{{ place.location }}</span>
           </div>
 
-          <!-- Facilities -->
           <div class="card-facilities">
-            <span
-              v-for="(facility, index) in place.facilities.slice(0, 3)"
-              :key="index"
-              class="facility-badge"
-            >
-              {{ facility }}
+            <span v-for="(facility, index) in place.facilities.slice(0, 3)" :key="index" class="facility-badge">
+              {{ facility.trim() }}
             </span>
             <span v-if="place.facilities.length > 3" class="facility-more">
               +{{ place.facilities.length - 3 }}
             </span>
           </div>
 
-          <!-- Price -->
-          <div class="card-price">
-            <span class="price-label">Mulai dari</span>
-            <span class="price-value">{{ formatCurrency(place.price) }}</span>
+          <div class="card-footer">
+            <div class="price-info">
+              <span class="price-label">Mulai dari</span>
+              <span class="price-value">{{ formatCurrency(place.price) }}</span>
+            </div>
+            <button class="btn-detail">Detail</button>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Pagination -->
-    <div class="pagination">
-      <button
-        class="pagination-btn pagination-prev"
-        :disabled="currentPage === 1"
-        @click="previousPage"
-      >
-        <svg
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-        >
-          <polyline points="15 18 9 12 15 6"></polyline>
-        </svg>
+    <div v-if="totalPages > 1" class="pagination">
+      <button class="pagination-btn" :disabled="currentPage === 1" @click="previousPage">
+        <font-awesome-icon icon="fa-solid fa-chevron-left" />
       </button>
 
-      <button
-        v-for="page in visiblePages"
-        :key="page"
-        :class="['pagination-btn', { active: currentPage === page }]"
-        @click="goToPage(page)"
-      >
+      <button v-for="page in visiblePages" :key="page" :class="['pagination-btn', { active: currentPage === page }]"
+        @click="goToPage(page)">
         {{ page }}
       </button>
 
-      <button
-        class="pagination-btn pagination-next"
-        :disabled="currentPage === totalPages"
-        @click="nextPage"
-      >
-        <svg
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-        >
-          <polyline points="9 18 15 12 9 6"></polyline>
-        </svg>
+      <button class="pagination-btn" :disabled="currentPage === totalPages" @click="nextPage">
+        <font-awesome-icon icon="fa-solid fa-chevron-right" />
       </button>
     </div>
   </div>
 </template>
 
-<script>
-export default {
-  name: "MemancingSection",
+<script setup>
+import { ref, computed, onMounted, watch } from "vue";
+import { useRouter } from "vue-router";
 
-  data() {
-    return {
-      searchQuery: "",
-      selectedFilter: null,
-      currentPage: 1,
-      itemsPerPage: 12,
+const router = useRouter();
 
-      filters: [
-        { id: null, label: "All" },
-        { id: "bandung", label: "Bandung" },
-        { id: "garut", label: "Garut" },
-        { id: "tasikmalaya", label: "Tasikmalaya" },
-        { id: "pangandaran", label: "Pangandaran" },
-        { id: "semarang", label: "Semarang" },
-        { id: "amol", label: "Amol" },
-        { id: "karimunjawa", label: "Karimunjawa" },
-        { id: "cilacap", label: "Cilacap" },
-      ],
+// --- STATE ---
+const searchQuery = ref("");
+const selectedFilter = ref(null);
+const currentPage = ref(1);
+const itemsPerPage = 9;
+const isLoading = ref(false);
+const fishingPlaces = ref([]);
 
-      fishingPlaces: [], // <-- Error #1: Tanda ']' ekstra DIHAPUS
-    };
-  },
+// Filter default
+const filters = ref([{ id: null, label: "Semua Lokasi" }]);
 
-  created() {
-    this.fetchTempatMancing();
-  },
+// --- COMPUTED PROPERTIES ---
+const filteredPlaces = computed(() => {
+  let places = fishingPlaces.value;
 
-  computed: {
-    filteredPlaces() {
-      let places = this.fishingPlaces; 
+  // Filter by City
+  if (selectedFilter.value) {
+    places = places.filter((place) => place.city.toLowerCase() === selectedFilter.value.toLowerCase());
+  }
 
-      if (this.selectedFilter) {
-        places = places.filter((place) => place.city === this.selectedFilter);
-      }
+  // Filter by Search
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase();
+    places = places.filter(
+      (place) =>
+        place.name.toLowerCase().includes(query) ||
+        place.location.toLowerCase().includes(query) ||
+        (place.facilities && place.facilities.some((f) => f.toLowerCase().includes(query)))
+    );
+  }
+  return places;
+});
 
-      if (this.searchQuery) {
-        const query = this.searchQuery.toLowerCase();
-        places = places.filter(
-          (place) =>
-            place.name.toLowerCase().includes(query) ||
-            place.location.toLowerCase().includes(query) ||
-            (place.facilities && place.facilities.some((f) => f.toLowerCase().includes(query))) // Tambahkan pengecekan 'place.facilities'
-        );
-      }
+const paginatedPlaces = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage;
+  const end = start + itemsPerPage;
+  return filteredPlaces.value.slice(start, end);
+});
 
-      return places;
-    },
+const totalPages = computed(() => {
+  return Math.ceil(filteredPlaces.value.length / itemsPerPage);
+});
 
-    paginatedPlaces() {
-      const start = (this.currentPage - 1) * this.itemsPerPage;
-      const end = start + this.itemsPerPage;
-      return this.filteredPlaces.slice(start, end);
-    },
+const visiblePages = computed(() => {
+  const pages = [];
+  const maxVisible = 5;
+  let start = Math.max(1, currentPage.value - Math.floor(maxVisible / 2));
+  let end = Math.min(totalPages.value, start + maxVisible - 1);
 
-    totalPages() {
-      return Math.ceil(this.filteredPlaces.length / this.itemsPerPage);
-    },
+  if (end - start < maxVisible - 1) {
+    start = Math.max(1, end - maxVisible + 1);
+  }
 
-    visiblePages() {
-      const pages = [];
-      const maxVisible = 5;
-      let start = Math.max(1, this.currentPage - Math.floor(maxVisible / 2));
-      let end = Math.min(this.totalPages, start + maxVisible - 1);
+  for (let i = start; i <= end; i++) {
+    pages.push(i);
+  }
+  return pages;
+});
 
-      if (end - start < maxVisible - 1) {
-        start = Math.max(1, end - maxVisible + 1);
-      }
+// --- METHODS ---
 
-      for (let i = start; i <= end; i++) {
-        pages.push(i);
-      }
+function formatCurrency(amount) {
+  if (amount == null) return "Rp 0";
+  return new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    minimumFractionDigits: 0,
+  }).format(amount);
+}
 
-      return pages;
-    },
-  },
+async function fetchTempatMancing() {
+  isLoading.value = true;
+  try {
+    const response = await fetch('http://localhost:3000/tempat_mancing');
+    if (!response.ok) throw new Error(`Error: ${response.status}`);
 
-  methods: {
-    formatCurrency(amount) {
-      if (amount == null) return "Rp 0"; // Tambahkan penjagaan
-      return new Intl.NumberFormat("id-ID", {
-        style: "currency",
-        currency: "IDR",
-        minimumFractionDigits: 0,
-      }).format(amount);
-    },
+    const dataDariDatabase = await response.json();
 
-    async fetchTempatMancing() {
-      console.log("Mulai memanggil backend...");
-      try {
-        const response = await fetch('http://localhost:3000/tempat_mancing');
+    // Mapping Data
+    const dataSiapTampil = dataDariDatabase.map(db_tempat => {
+      return {
+        id: db_tempat.id,
+        name: db_tempat.nama,
+        location: db_tempat.lokasi,
+        price: db_tempat.harga_per_jam,
+        image: db_tempat.image_url || 'https://via.placeholder.com/400x250.png?text=No+Image',
+        city: db_tempat.kota || 'Lainnya',
+        facilities: db_tempat.fasilitas ? db_tempat.fasilitas.split(',') : [],
+        rating: 4.5,
+      };
+    });
 
-        if(!response.ok) {
-          throw new Error(`Error: ${response.status}`);
-        }
+    fishingPlaces.value = dataSiapTampil;
 
-        const dataDariDatabase = await response.json();
-        console.log("Data diterima: ", dataDariDatabase);
+    // Generate Filter Kota Otomatis
+    const cities = [...new Set(dataSiapTampil.map(item => item.city))];
+    filters.value = [
+      { id: null, label: "Semua Lokasi" },
+      ...cities.map(city => ({
+        id: city.toLowerCase(),
+        label: city.charAt(0).toUpperCase() + city.slice(1)
+      }))
+    ];
 
-        const dataSiapTampil = dataDariDatabase.map(db_tempat => {
-          return {
-            id: db_tempat.id,
-            name: db_tempat.nama,
-            location: db_tempat.lokasi,
-            price: db_tempat.harga_per_jam,
-            
-            // Data "palsu" untuk jaga-jaga
-            rating: 4.2, 
-            image: 'https://via.placeholder.com/300x200.png?text=Gambar+Tempat', // Perlu perbaikan gambar
-            facilities: ["Gazebo", "Toilet"], // Typo: 'facilites' -> 'facilities'
-            city: db_tempat.lokasi ? db_tempat.lokasi.toLowerCase().split(',')[0] : 'bandung' // Perbaikan filter kota
-          };
-        });
+  } catch (err) {
+    console.error("Gagal ambil data:", err);
+  } finally {
+    isLoading.value = false;
+  }
+}
 
-        this.fishingPlaces = dataSiapTampil;
-      } catch (err) {
-        console.error("Gagal mengambil data dari backend: ", err);
-      }
-    }, // <-- Error #3: KOMA DITAMBAHKAN DI SINI
+// --- NAVIGASI ---
+function goToReview(place) {
+  // Pindah ke halaman review dengan membawa ID tempat
+  router.push({ name: "ReviewSection", params: { id: place.id } });
+}
 
-    selectFilter(filterId) {
-      this.selectedFilter = filterId;
-      this.currentPage = 1;
-    },
+function selectFilter(filterId) {
+  selectedFilter.value = filterId;
+  currentPage.value = 1;
+}
 
-    selectPlace(place) {
-      this.$emit("place-selected", place);
-      console.log("Selected place:", place);
-      // Panggil goToReview dari sini
-      this.goToReview(place);
-    },
+function resetFilters() {
+  searchQuery.value = "";
+  selectedFilter.value = null;
+}
 
-    // Error #2: Fungsi "tersesat" DIPINDAHKAN KE DALAM 'methods'
-    goToReview(tempat) {
-      // Gunakan 'this.$router'
-      this.$router.push({ name: "ReviewSection", params: { id: tempat.nama } });
-    },
+function goToPage(page) {
+  currentPage.value = page;
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
 
-    goToPage(page) {
-      this.currentPage = page;
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    },
+function previousPage() {
+  if (currentPage.value > 1) {
+    currentPage.value--;
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+}
 
-    previousPage() {
-      if (this.currentPage > 1) {
-        this.currentPage--;
-        window.scrollTo({ top: 0, behavior: "smooth" });
-      }
-    },
+function nextPage() {
+  if (currentPage.value < totalPages.value) {
+    currentPage.value++;
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+}
 
-    nextPage() {
-      if (this.currentPage < this.totalPages) {
-        this.currentPage++;
-        window.scrollTo({ top: 0, behavior: "smooth" });
-      }
-    },
-  },
+// --- LIFECYCLE & WATCH ---
+onMounted(() => {
+  fetchTempatMancing();
+});
 
-  watch: {
-    searchQuery() {
-      this.currentPage = 1;
-    },
-  },
-};
-
-// Error #2: SEMUA KODE DI BAWAH INI DIHAPUS
-// import { useRouter } from "vue-router";
-// const router = useRouter();
-// function goToReview(tempat) {
-//   router.push({ name: "ReviewSection", params: { id: tempat.nama } });
-// }
+watch(searchQuery, () => {
+  currentPage.value = 1;
+});
 </script>
+
 <style scoped>
-/* ===== VARIABEL WARNA ===== */
+/* ===== STYLE TETAP SAMA ===== */
+/* Biar ga kepanjangan, saya tidak paste ulang style CSS-nya. 
+   Gunakan STYLE yang SAMA persis dengan yang saya kasih sebelumnya 
+   (yang ada pill buttons, hover card, dll). 
+   
+   Hanya bagian <script> di atas yang berubah total jadi <script setup>. 
+*/
+
+/* ===== VARIABLES ===== */
 :root {
-  --color-primary: #48cae4;
-  --color-secondary: #ffa200;
-  --color-dark: #03045e;
-  --color-light-bg: #f0f8ff;
-  --color-white: #ffffff;
-  --color-border: #e0e0e0;
-  --color-text-secondary: #666666;
+  --primary: #023e8a;
+  --primary-light: #48cae4;
+  --accent: #ffb703;
+  --bg: #f8f9fa;
+  --text: #333;
+  --text-light: #666;
 }
 
-/* ===== CONTAINER ===== */
 .memancing-section {
-  max-width: 1280px;
+  max-width: 1200px;
   margin: 0 auto;
-  /* Tingkatkan padding atas untuk memberi ruang di bawah header */
-  padding: 24px; /* Ganti atau tambahkan baris di bawah */
-  padding-top: 100px; /* Nilai contoh. Sesuaikan sesuai tinggi header Anda, misalnya 80px atau 100px */
+  padding: 24px;
+  padding-top: 100px;
+  /* Spacer untuk navbar fixed */
   min-height: 100vh;
+  font-family: 'Poppins', sans-serif;
 }
 
-/* ===== SEARCH BAR ===== */
+/* --- HEADER & CONTROLS --- */
+.header-section {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.page-title {
+  font-size: 2.5rem;
+  color: #023e8a;
+  font-weight: 800;
+  margin-bottom: 10px;
+}
+
+.page-subtitle {
+  color: #666;
+  font-size: 1.1rem;
+}
+
+.controls-wrapper {
+  margin-bottom: 40px;
+}
+
 .search-container {
-  margin-bottom: 24px;
+  max-width: 600px;
+  margin: 0 auto 30px;
 }
 
 .search-box {
   position: relative;
-  max-width: 600px;
-  margin: 0 auto;
+  background: white;
+  border: 2px solid #023e8a;
+  border-radius: 50px;
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  box-shadow: 0 8px 20px rgba(2, 62, 138, 0.1);
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.search-box:focus-within {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px rgba(2, 62, 138, 0.2);
 }
 
 .search-icon {
-  position: absolute;
-  left: 16px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--color-text-secondary);
-  pointer-events: none;
+  color: #023e8a;
+  font-size: 1.2rem;
+  margin-right: 15px;
 }
 
 .search-input {
-  width: 100%;
-  padding: 14px 16px 14px 48px;
-  border: 2px solid var(--color-border);
-  border-radius: 50px;
-  font-size: 15px;
+  border: none;
   outline: none;
-  transition: all 0.3s ease;
+  width: 100%;
+  font-size: 1rem;
+  color: #333;
 }
 
-.search-input:focus {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 4px rgba(72, 202, 228, 0.1);
-}
-
-.search-input::placeholder {
-  color: var(--color-text-secondary);
-}
-
-/* ===== FILTER TABS ===== */
+/* --- FILTER TABS (PILL STYLE) --- */
 .filter-tabs {
   display: flex;
-  gap: 12px;
-  margin-bottom: 32px;
-  overflow-x: auto;
-  padding-bottom: 8px;
-}
-
-.filter-tabs::-webkit-scrollbar {
-  height: 4px;
-}
-
-.filter-tabs::-webkit-scrollbar-thumb {
-  background-color: var(--color-primary);
-  border-radius: 2px;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .filter-tab {
   padding: 10px 24px;
-  border: 2px solid var(--color-border);
+  border: none;
   border-radius: 50px;
-  background-color: var(--color-white);
-  color: var(--color-text-secondary);
-  font-size: 14px;
+  background-color: #e9ecef;
+  color: #555;
+  font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
-  white-space: nowrap;
 }
 
 .filter-tab:hover {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
+  background-color: #dee2e6;
+  transform: translateY(-2px);
 }
 
 .filter-tab.active {
-  background-color: var(--color-primary);
-  border-color: var(--color-primary);
-  color: var(--color-white);
+  background-color: #023e8a;
+  color: white;
+  box-shadow: 0 4px 12px rgba(2, 62, 138, 0.3);
 }
 
-/* ===== FISHING GRID ===== */
+/* --- GRID SYSTEM --- */
 .fishing-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 24px;
-  margin-bottom: 40px;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 30px;
+  margin-bottom: 50px;
 }
 
+/* --- CARD DESIGN --- */
 .fishing-card {
-  background-color: var(--color-white);
-  border-radius: 16px;
+  background: white;
+  border-radius: 20px;
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  cursor: pointer;
+  border: 1px solid #f0f0f0;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
   transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
 }
 
 .fishing-card:hover {
   transform: translateY(-8px);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
 }
 
-/* ===== CARD IMAGE ===== */
 .card-image {
   position: relative;
+  height: 220px;
   width: 100%;
-  height: 200px;
-  overflow: hidden;
 }
 
 .card-image img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.3s ease;
 }
 
-.fishing-card:hover .card-image img {
-  transform: scale(1.1);
-}
-
-.favorite-badge {
+.category-badge {
   position: absolute;
-  top: 12px;
-  right: 12px;
-  width: 36px;
-  height: 36px;
-  background-color: rgba(255, 255, 255, 0.9);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #ffffff;
-  backdrop-filter: blur(4px);
-  transition: all 0.3s ease;
+  top: 15px;
+  left: 15px;
+  background: rgba(255, 255, 255, 0.95);
+  color: #023e8a;
+  padding: 6px 14px;
+  border-radius: 30px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  text-transform: uppercase;
 }
 
-.fishing-card:hover .favorite-badge {
-  transform: scale(1.1);
-}
-
-/* ===== CARD CONTENT ===== */
 .card-content {
-  padding: 16px;
+  padding: 24px;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .card-header {
@@ -510,196 +436,196 @@ export default {
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: 8px;
-  gap: 8px;
 }
 
 .card-title {
-  font-size: 18px;
+  font-size: 1.25rem;
   font-weight: 700;
-  color: var(--color-dark);
+  color: #1a1a1a;
   margin: 0;
-  flex: 1;
-  line-height: 1.3;
+  line-height: 1.4;
 }
 
 .card-rating {
   display: flex;
   align-items: center;
-  gap: 4px;
-  background-color: #fff3cd;
-  padding: 4px 10px;
-  border-radius: 20px;
-  flex-shrink: 0;
+  gap: 5px;
+  background: #fff9c4;
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-weight: bold;
+  color: #fbc02d;
+  font-size: 0.85rem;
 }
 
-.star-icon {
-  color: #ffc107;
-}
-
-.rating-value {
-  font-size: 14px;
-  font-weight: 700;
-  color: #856404;
-}
-
-/* ===== LOCATION ===== */
 .card-location {
+  color: #666;
+  font-size: 0.9rem;
+  margin-bottom: 16px;
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-bottom: 12px;
-  color: var(--color-text-secondary);
-  font-size: 14px;
 }
 
-.location-icon {
-  color: var(--color-primary);
-  flex-shrink: 0;
-}
-
-/* ===== FACILITIES ===== */
+/* Facilities */
 .card-facilities {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 16px;
-  min-height: 28px;
+  gap: 8px;
+  margin-bottom: 20px;
 }
 
 .facility-badge {
+  background: #f1f5f9;
+  color: #475569;
   padding: 4px 10px;
-  background-color: #e8f5e9;
-  color: #2e7d32;
-  font-size: 12px;
+  border-radius: 8px;
+  font-size: 0.75rem;
   font-weight: 600;
-  border-radius: 12px;
-  white-space: nowrap;
 }
 
 .facility-more {
-  padding: 4px 10px;
-  background-color: #f5f5f5;
-  color: var(--color-text-secondary);
-  font-size: 12px;
-  font-weight: 700;
-  border-radius: 12px;
+  color: #94a3b8;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 4px;
 }
 
-/* ===== PRICE ===== */
-.card-price {
+/* Footer Card */
+.card-footer {
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.price-info {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding-top: 12px;
-  border-top: 1px solid var(--color-border);
 }
 
 .price-label {
-  font-size: 12px;
-  color: var(--color-text-secondary);
+  font-size: 0.75rem;
+  color: #999;
 }
 
 .price-value {
-  font-size: 20px;
-  font-weight: 800;
-  color: var(--color-primary);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #023e8a;
 }
 
-/* ===== PAGINATION ===== */
+.btn-detail {
+  background: #e0f2fe;
+  color: #0284c7;
+  border: none;
+  padding: 8px 20px;
+  border-radius: 50px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.fishing-card:hover .btn-detail {
+  background: #023e8a;
+  color: white;
+}
+
+/* --- PAGINATION --- */
 .pagination {
   display: flex;
   justify-content: center;
-  align-items: center;
-  gap: 8px;
-  margin-top: 40px;
+  gap: 10px;
+  margin-top: 60px;
 }
 
 .pagination-btn {
-  min-width: 44px;
-  height: 44px;
+  width: 45px;
+  height: 45px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 2px solid var(--color-border);
-  border-radius: 50%;
-  background-color: var(--color-white);
-  color: var(--color-text-secondary);
-  font-size: 15px;
-  font-weight: 600;
+  border: 1px solid #ddd;
+  background: white;
+  border-radius: 12px;
+  color: #555;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s;
+  font-weight: 600;
 }
 
 .pagination-btn:hover:not(:disabled) {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-  transform: scale(1.05);
+  border-color: #023e8a;
+  color: #023e8a;
 }
 
 .pagination-btn.active {
-  background-color: var(--color-primary);
-  border-color: var(--color-primary);
-  color: var(--color-white);
+  background: #023e8a;
+  color: white;
+  border-color: #023e8a;
+  box-shadow: 0 4px 10px rgba(2, 62, 138, 0.3);
 }
 
 .pagination-btn:disabled {
-  opacity: 0.3;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
-.pagination-prev,
-.pagination-next {
-  background-color: var(--color-primary);
-  border-color: var(--color-primary);
-  color: var(--color-white);
+/* --- STATES --- */
+.loading-state,
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #64748b;
 }
 
-.pagination-prev:hover:not(:disabled),
-.pagination-next:hover:not(:disabled) {
-  background-color: #3aa8c1;
-  transform: scale(1.1);
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #023e8a;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 20px;
 }
 
-/* ===== RESPONSIVE ===== */
-@media (max-width: 1024px) {
-  .fishing-grid {
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    gap: 16px;
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
   }
 }
 
+.btn-reset {
+  margin-top: 15px;
+  padding: 10px 20px;
+  background: #023e8a;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+/* Responsive */
 @media (max-width: 768px) {
-  .memancing-section {
-    padding: 16px;
-  }
-
-  .fishing-grid {
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  }
-
   .filter-tabs {
-    gap: 8px;
+    justify-content: flex-start;
+    overflow-x: auto;
+    padding-bottom: 10px;
+    flex-wrap: nowrap;
   }
 
   .filter-tab {
-    padding: 8px 16px;
-    font-size: 13px;
-  }
-}
-
-@media (max-width: 480px) {
-  .fishing-grid {
-    grid-template-columns: 1fr;
+    white-space: nowrap;
   }
 
-  .pagination {
-    gap: 4px;
-  }
-
-  .pagination-btn {
-    min-width: 40px;
-    height: 40px;
-    font-size: 14px;
+  .page-title {
+    font-size: 2rem;
   }
 }
 </style>
