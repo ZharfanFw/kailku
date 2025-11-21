@@ -4,10 +4,16 @@
       <h1 class="title">Profil Saya</h1>
 
       <div class="profile-tabs">
-        <button :class="['tab-btn', { active: activeTab === 'profile' }]" @click="activeTab = 'profile'">
+        <button
+          :class="['tab-btn', { active: activeTab === 'profile' }]"
+          @click="activeTab = 'profile'"
+        >
           Profil Akun
         </button>
-        <button :class="['tab-btn', { active: activeTab === 'orders' }]" @click="activeTab = 'orders'">
+        <button
+          :class="['tab-btn', { active: activeTab === 'orders' }]"
+          @click="activeTab = 'orders'"
+        >
           Riwayat Pesanan
         </button>
       </div>
@@ -25,6 +31,10 @@
 
           <div v-if="!isEditing" class="info-grid">
             <div class="info-field">
+              <span class="label">Username</span>
+              <span class="value">{{ user.username }}</span>
+            </div>
+            <div class="info-field">
               <span class="label">Nama Depan</span>
               <span class="value">{{ user.firstName }}</span>
             </div>
@@ -38,11 +48,11 @@
             </div>
             <div class="info-field">
               <span class="label">No. Telepon</span>
-              <span class="value">{{ user.phone || '-' }}</span>
+              <span class="value">{{ user.phone || "-" }}</span>
             </div>
             <div class="info-field full-width">
               <span class="label">Alamat</span>
-              <span class="value">{{ user.address || '-' }}</span>
+              <span class="value">{{ user.address || "-" }}</span>
             </div>
           </div>
 
@@ -57,7 +67,12 @@
             </div>
             <div class="form-field">
               <label>Email</label>
-              <input type="email" v-model="userEdit.email" disabled style="background: #eee; cursor: not-allowed;" />
+              <input
+                type="email"
+                v-model="userEdit.email"
+                disabled
+                style="background: #eee; cursor: not-allowed"
+              />
             </div>
             <div class="form-field">
               <label>No. Telepon</label>
@@ -76,9 +91,7 @@
           </button>
 
           <div v-else class="edit-buttons">
-            <button @click="cancelEdit" class="btn btn-secondary">
-              Batal
-            </button>
+            <button @click="cancelEdit" class="btn btn-secondary">Batal</button>
             <button @click="saveEdit" class="btn btn-primary">
               Simpan Perubahan
             </button>
@@ -89,30 +102,40 @@
       </div>
 
       <div v-else-if="activeTab === 'orders'" class="orders-card">
-
         <div v-if="isLoadingOrders" class="loading-state">
-          <div class="spinner"></div> Memuat riwayat...
+          <div class="spinner"></div>
+          Memuat riwayat...
         </div>
 
-        <div v-else-if="bookings.length === 0 && orders.length === 0" class="empty-state">
-          <img src="https://cdn-icons-png.flaticon.com/512/4076/4076432.png" width="60"
-            style="opacity: 0.5; margin-bottom: 10px;">
+        <div
+          v-else-if="bookings.length === 0 && orders.length === 0"
+          class="empty-state"
+        >
+          <img
+            src="https://cdn-icons-png.flaticon.com/512/4076/4076432.png"
+            width="60"
+            style="opacity: 0.5; margin-bottom: 10px"
+          />
           <p>Belum ada riwayat pesanan.</p>
-          <button @click="$router.push('/memancing-section')" class="btn btn-primary"
-            style="width: auto; margin-top: 10px;">
+          <button
+            @click="$router.push('/memancing-section')"
+            class="btn btn-primary"
+            style="width: auto; margin-top: 10px"
+          >
             Mulai Booking
           </button>
         </div>
 
         <div v-else class="history-list">
-
           <div v-for="b in bookings" :key="'b-' + b.id" class="history-item">
             <div class="history-icon ticket">🎫</div>
             <div class="history-info">
               <h4>{{ b.nama_tempat }}</h4>
               <p>📍 {{ b.lokasi_tempat }}</p>
-              <p class="meta">{{ formatDate(b.tanggal_booking) }} • {{ b.start_time.slice(0, 5) }} - {{
-                b.end_time.slice(0, 5) }}</p>
+              <p class="meta">
+                {{ formatDate(b.tanggal_booking) }} •
+                {{ b.start_time.slice(0, 5) }} - {{ b.end_time.slice(0, 5) }}
+              </p>
               <span :class="['status-badge', b.status]">{{ b.status }}</span>
             </div>
             <div class="history-price">
@@ -131,23 +154,21 @@
               {{ formatCurrency(Number(o.total_harga) || 0) }}
             </div>
           </div>
-
         </div>
       </div>
-
     </main>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref, onMounted } from "vue";
+import { useRouter } from "vue-router";
 
 const router = useRouter();
-const defaultAvatar = 'https://placehold.co/120x120/EBF8FF/023e8a?text=User';
+const defaultAvatar = "https://placehold.co/120x120/EBF8FF/023e8a?text=User";
 
 // State UI
-const activeTab = ref('profile');
+const activeTab = ref("profile");
 const isEditing = ref(false);
 const isLoadingOrders = ref(false);
 const avatar = ref(defaultAvatar);
@@ -155,6 +176,7 @@ const avatar = ref(defaultAvatar);
 // State Data User
 const user = ref({
   id: null,
+  username: "",
   firstName: "",
   lastName: "",
   email: "",
@@ -170,12 +192,12 @@ const PRICE_PER_HOUR = 25000;
 
 // --- 1. FETCH PROFIL ---
 async function fetchUserProfile() {
-  const token = localStorage.getItem('kailku_token');
-  if (!token) return router.push('/login');
+  const token = localStorage.getItem("kailku_token");
+  if (!token) return router.push("/login");
 
   try {
-    const res = await fetch('http://localhost:3000/auth/profile', {
-      headers: { Authorization: `Bearer ${token}` }
+    const res = await fetch("http://localhost:3000/auth/profile", {
+      headers: { Authorization: `Bearer ${token}` },
     });
 
     if (!res.ok) throw new Error("Session expired");
@@ -185,40 +207,42 @@ async function fetchUserProfile() {
     // Mapping Data Backend ke Frontend
     user.value.id = data.id;
     const fullName = data.full_name || data.username;
-    const names = fullName.split(' ');
-    user.value.firstName = names[0];
-    user.value.lastName = names.slice(1).join(' ') || '';
+    const names = fullName.split(" ");
+    user.value.username = data.username;
+    user.value.firstName = data.first_name;
+    user.value.lastName = data.last_name;
     user.value.email = data.email;
-    user.value.phone = data.phone || '';
-    user.value.address = data.address || '';
+    user.value.phone = data.phone || "";
+    user.value.address = data.address || "";
 
     if (data.avatar_url) avatar.value = data.avatar_url;
-
   } catch (e) {
-    localStorage.removeItem('kailku_token');
-    router.push('/login');
+    localStorage.removeItem("kailku_token");
+    router.push("/login");
   }
 }
 
 // --- 2. FETCH RIWAYAT ---
 async function fetchHistory() {
-  const token = localStorage.getItem('kailku_token');
+  const token = localStorage.getItem("kailku_token");
   isLoadingOrders.value = true;
   try {
     // Ambil Booking
-    const resBook = await fetch('http://localhost:3000/bookings/my', {
-      headers: { Authorization: `Bearer ${token}` }
+    const resBook = await fetch("http://localhost:3000/bookings/my", {
+      headers: { Authorization: `Bearer ${token}` },
     });
     if (resBook.ok) bookings.value = await resBook.json();
 
     // Ambil Order
-    const resOrder = await fetch('http://localhost:3000/orders/my', {
-      headers: { Authorization: `Bearer ${token}` }
+    const resOrder = await fetch("http://localhost:3000/orders/my", {
+      headers: { Authorization: `Bearer ${token}` },
     });
     if (resOrder.ok) orders.value = await resOrder.json();
-
-  } catch (e) { console.error(e); }
-  finally { isLoadingOrders.value = false; }
+  } catch (e) {
+    console.error(e);
+  } finally {
+    isLoadingOrders.value = false;
+  }
 }
 
 // --- 3. EDIT & LOGOUT ---
@@ -233,20 +257,24 @@ function cancelEdit() {
 }
 
 async function saveEdit() {
-  const token = localStorage.getItem('kailku_token');
+  const token = localStorage.getItem("kailku_token");
   try {
     const payload = {
-      username: user.value.firstName, // Backend butuh username utk login, tp disini kita update nama
       full_name: `${userEdit.value.firstName} ${userEdit.value.lastName}`,
+      first_name: userEdit.value.firstName,
+      last_name: userEdit.value.lastName,
       email: userEdit.value.email,
       phone: userEdit.value.phone,
-      address: userEdit.value.address
+      address: userEdit.value.address,
     };
 
-    const res = await fetch('http://localhost:3000/auth/my-profile', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-      body: JSON.stringify(payload)
+    const res = await fetch("http://localhost:3000/auth/my-profile", {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
     });
 
     if (!res.ok) throw new Error("Gagal update");
@@ -254,14 +282,15 @@ async function saveEdit() {
     user.value = { ...userEdit.value };
     isEditing.value = false;
     alert("Profil berhasil diperbarui!");
-
-  } catch (e) { alert(e.message); }
+  } catch (e) {
+    alert(e.message);
+  }
 }
 
 function handleLogout() {
   if (confirm("Keluar dari akun?")) {
-    localStorage.removeItem('kailku_token');
-    router.push('/login');
+    localStorage.removeItem("kailku_token");
+    router.push("/login");
   }
 }
 
@@ -272,13 +301,22 @@ async function responseHandler(res) {
   return data;
 }
 
-const formatDate = (d) => new Date(d).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
-const formatCurrency = (val) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(val);
+const formatDate = (d) =>
+  new Date(d).toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+const formatCurrency = (val) =>
+  new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR" }).format(
+    val
+  );
 const calculateBookingPrice = (b) => {
   if (!b.start_time) return 0;
-  const dur = parseInt(b.end_time.split(':')[0]) - parseInt(b.start_time.split(':')[0]);
+  const dur =
+    parseInt(b.end_time.split(":")[0]) - parseInt(b.start_time.split(":")[0]);
   return dur * PRICE_PER_HOUR;
-}
+};
 
 // --- INIT ---
 onMounted(() => {
@@ -290,7 +328,7 @@ onMounted(() => {
 <style scoped>
 /* ===== CSS UTAMA (SAMA SEPERTI PUNYAMU) ===== */
 .profile-page-container {
-  font-family: 'Poppins', sans-serif;
+  font-family: "Poppins", sans-serif;
   min-height: 100vh;
   padding: 100px 20px 40px;
   background-color: #f8f9fa;
@@ -411,7 +449,6 @@ onMounted(() => {
 }
 
 @media (min-width: 640px) {
-
   .info-grid,
   .form-grid {
     grid-template-columns: 1fr 1fr;
@@ -444,7 +481,7 @@ label {
 
 .form-field input,
 .form-field textarea {
-  font-family: 'Poppins', sans-serif;
+  font-family: "Poppins", sans-serif;
   font-size: 1rem;
   padding: 10px 12px;
   border: 1px solid #d1d5db;
