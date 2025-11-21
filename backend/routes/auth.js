@@ -1,5 +1,10 @@
 // backend/routes/auth.js
+const crypto = require("crypto");
 const bcrypt = require("bcrypt");
+const { asyncWrapProviders } = require("async_hooks");
+const { connected } = require("process");
+const { log } = require("console");
+const { registerHooks } = require("module");
 
 /**
  * Mendefinisikan rute untuk modul Autentikasi dan Profil Pengguna.
@@ -161,10 +166,10 @@ async function authRoutes(fastify, options) {
     },
     async (request, reply) => {
       const user_id = request.user.id;
-      const { username, email } = request.body;
+      const { username, email, full_name, phone, address } = request.body;
 
       // Validasi: Minimal ada satu data yang ingin diubah
-      if (!username && !email) {
+      if (!username && !email && !full_name && !phone && !address) {
         return reply
           .status(400)
           .send({ message: "Minimal kirim satu data (username atau email)" });
@@ -182,6 +187,18 @@ async function authRoutes(fastify, options) {
       if (email) {
         fieldsToUpdate.push("email = ?");
         values.push(email);
+      }
+      if (full_name) {
+        fieldsToUpdate.push("full_name = ?");
+        values.push(full_name);
+      }
+      if (phone) {
+        fieldsToUpdate.push("phone = ?");
+        values.push(phone);
+      }
+      if (address) {
+        fieldsToUpdate.push("address = ?");
+        values.push(address);
       }
 
       query += fieldsToUpdate.join(", ");
@@ -215,6 +232,88 @@ async function authRoutes(fastify, options) {
       }
     },
   );
+
+  fastify.post("/forgot-password", async (request, reply) => {
+    const { email } = request.body;
+
+    let connection;
+    try {
+      connection = await fastify.mysql.getConnection();
+
+      const [rows] = await connection.query(
+        "SELECT * FROM users WHERE email = ?",
+        [email],
+      );
+
+      if (rows.length === 0) {
+        connection.release();
+        return reply.status(404).send({ message: "Email tidak terdaftar" });
+      }
+
+      const token = crypto.randomBytes(20).toString("hex");
+
+      const expireDate = new Date(Date.now() + 3600000);
+
+      await connection.query(
+        "UPDATE users SET reset_token = ?, reset_expires = ? WHERE email = ?",
+        [token, expireDate, email],
+      );
+
+      connection.release();
+
+      console.log(
+        `Link Reset: http://localhost:5173/reset-password?token=${token}`,
+      );
+      return reply.send({
+        message:
+          "Link reset password telah dikirim ke email (Cek Console Backend!)",
+        debug_token: token,
+      });
+    } catch (err) {
+      if (connection) connection.release();
+      fastify.log.error(err);
+      reply.status(500).send({ message: "Gagal memproses permintaan" });
+    }
+  });
+
+  fastify.post("/reset-password", async (request, reply) => {
+    const { token, newPassword } = request.body;
+
+    let connection;
+    try {
+      connection = await fastify.mysql.getConnection();
+
+      const [rows] = await connection.query(
+        "SELECT * FROM users WHERE reset_token = ? AND reset_expires > NOW()",
+        [token],
+      );
+
+      if (rows.length === 0) {
+        connection.release();
+        return reply
+          .status(404)
+          .send({ message: "Token tidak valid atau sudah kadaluarsa" });
+      }
+
+      const salt = await bcrypt.genSalt(10);
+      const password_hash = await bcrypt.hash(newPassword, salt);
+
+      await connection.query(
+        "UPDATE users SET password_hash = ?, reset_token = NULL, reset_expires = NULL WHERE id = ?",
+        [password_hash, rows[0].id],
+      );
+
+      connection.release();
+
+      return reply.send({
+        message: "Password berhasil diubah! Silahkan login.",
+      });
+    } catch (err) {
+      if (connection) connection.release();
+      fastify.log.error(err);
+      reply.status(500).send({ message: "Gagal mereset password" });
+    }
+  });
 }
 
 module.exports = authRoutes;

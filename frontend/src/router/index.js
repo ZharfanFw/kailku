@@ -12,6 +12,8 @@ import AllTampilan from "@/components/pages/AllTampilan.vue";
 import Login from "@/components/pages/Login.vue";
 import Kelompok from "@/components/pages/Kelompok.vue";
 import UserProfil from "@/components/pages/UserProfil.vue";
+import ForgotPassword from "../components/pages/ForgotPassword.vue"; // Nanti kita buat
+import ResetPassword from "../components/pages/ResetPassword.vue"; // Nanti kita buat
 
 const routes = [
   {
@@ -55,14 +57,16 @@ const routes = [
     component: Cart,
   },
   {
-    path: "/booking",
-    name: "Booking",
+    path: "/booking/:id",
+    name: "BookingSection",
     component: BookingSection,
+    props: true,
   },
   {
-    path: "/review",
+    path: "/review/:id",
     name: "ReviewSection",
     component: ReviewSection,
+    props: true,
   },
   {
     path: "/kelompok",
@@ -74,6 +78,12 @@ const routes = [
     name: "UserProfil",
     component: UserProfil,
   },
+  {
+    path: "/forgot-password",
+    name: "ForgotPassword",
+    component: ForgotPassword,
+  },
+  { path: "/reset-password", name: "ResetPassword", component: ResetPassword },
 ];
 
 const router = createRouter({

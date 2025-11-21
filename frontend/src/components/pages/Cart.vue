@@ -1,478 +1,253 @@
 <template>
   <div class="cart-container">
-    <!-- Header Page -->
-    <div class="products-grid">
+
+    <div class="booking-section" v-if="bookings.length > 0">
+      <h2 class="section-title">🎫 Tiket Booking Tempat</h2>
+      <div class="booking-list">
+        <div v-for="booking in bookings" :key="booking.id" class="ticket-card">
+          <div class="ticket-icon">🎣</div>
+          <div class="ticket-info">
+            <h3>{{ booking.nama_tempat }}</h3>
+            <p class="loc">📍 {{ booking.lokasi_tempat }}</p>
+            <div class="ticket-meta">
+              <span>📅 {{ formatDate(booking.tanggal_booking) }}</span>
+              <span>⏰ {{ booking.start_time.slice(0, 5) }} - {{ booking.end_time.slice(0, 5) }}</span>
+              <span>🪑 Kursi No. {{ booking.no_kursi || 'Bebas' }}</span>
+            </div>
+          </div>
+          <div class="ticket-status">
+            <span class="badge pending">Menunggu Pembayaran</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <h2 class="section-title">🎣 Sewa / Beli Alat Pancing</h2>
+
+    <div v-if="isLoadingTools" class="loading-state">
+      <div class="spinner"></div> Memuat alat pancing...
+    </div>
+
+    <div v-else class="products-grid">
       <div v-for="product in products" :key="product.id" class="product-card">
         <div class="product-image-wrapper">
-          <img :src="product.image" :alt="product.name" class="product-image" />
-          <span
-            :class="[
-              'product-badge',
-              product.type === 'beli' ? 'badge-beli' : 'badge-sewa',
-            ]"
-          >
-            {{ product.type === "beli" ? "Beli" : "Sewa" }}
-          </span>
+          <img :src="product.image_url || placeholderImg" :alt="product.nama" class="product-image" />
+
+          <span class="product-badge">{{ product.kategori }}</span>
         </div>
 
         <div class="product-info">
-          <h3 class="product-name">{{ product.name }}</h3>
-          <div class="product-rating">
-            <svg
-              v-for="star in 5"
-              :key="star"
-              class="star-icon"
-              :class="{ filled: star <= product.rating }"
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-            >
-              <path
-                d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
-              />
-            </svg>
-          </div>
-          <p class="product-price">{{ formatCurrency(product.price) }}</p>
+          <h3 class="product-name">{{ product.nama }}</h3>
 
-          <p
-            :class="['product-stock', { 'out-of-stock': product.stock === 0 }]"
-          >
-            Stok: {{ product.stock > 0 ? product.stock : "Habis" }}
+          <p :class="['product-stock', { 'out-of-stock': product.stok === 0 }]">
+            Stok: {{ product.stok > 0 ? product.stok : "Habis" }}
           </p>
 
-          <button
-            class="add-to-cart-button"
-            @click="addToCart(product)"
-            :disabled="isInCart(product.id) || product.stock === 0"
-          >
-            {{
-              product.stock === 0
-                ? "Stok Habis"
-                : isInCart(product.id)
-                ? "Ditambahkan"
-                : "Pilih"
-            }}
+          <div class="price-actions">
+            <div v-if="product.harga_sewa" class="action-row">
+              <span class="price-text">{{ formatCurrency(product.harga_sewa) }} <small>/sewa</small></span>
+              <button class="add-btn outline" @click="addToCart(product, 'sewa')" :disabled="product.stok === 0">
+                + Sewa
+              </button>
+            </div>
+
+            <div v-if="product.harga_beli" class="action-row">
+              <span class="price-text">{{ formatCurrency(product.harga_beli) }} <small>/beli</small></span>
+              <button class="add-btn" @click="addToCart(product, 'beli')" :disabled="product.stok === 0">
+                + Beli
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <transition name="slide-up">
+      <div class="cart-panel" v-if="cartItems.length > 0">
+        <div class="cart-panel-header">
+          <h3 class="cart-panel-title">Keranjang Belanja ({{ cartItems.length }})</h3>
+          <button class="clear-cart-button" @click="clearCart">Hapus Semua</button>
+        </div>
+
+        <div class="cart-items">
+          <div v-for="(item, index) in cartItems" :key="index" class="cart-item">
+            <img :src="item.image_url || placeholderImg" class="cart-item-image" />
+
+            <div class="cart-item-info">
+              <h4 class="cart-item-name">
+                {{ item.nama }}
+                <span :class="['cart-item-badge', item.tipe === 'beli' ? 'badge-beli' : 'badge-sewa']">
+                  {{ item.tipe === "beli" ? "Beli" : "Sewa" }}
+                </span>
+              </h4>
+              <p class="cart-item-category">{{ formatCurrency(item.harga) }} x {{ item.jumlah }}</p>
+            </div>
+
+            <div class="cart-item-quantity">
+              <button class="quantity-btn" @click="item.jumlah > 1 ? item.jumlah-- : removeItem(index)">-</button>
+              <span class="quantity-value">{{ item.jumlah }}</span>
+              <button class="quantity-btn" @click="item.jumlah++" :disabled="item.jumlah >= item.stok">+</button>
+            </div>
+
+            <p class="cart-item-price">
+              {{ formatCurrency(item.harga * item.jumlah) }}
+            </p>
+
+            <button class="remove-item-button" @click="removeItem(index)">✕</button>
+          </div>
+        </div>
+
+        <div class="cart-panel-footer">
+          <div class="cart-total">
+            <span class="total-label">Total:</span>
+            <span class="total-value">{{ formatCurrency(grandTotal) }}</span>
+          </div>
+          <button class="checkout-button" @click="handleCheckout" :disabled="isProcessing">
+            {{ isProcessing ? 'Memproses...' : 'Konfirmasi Pesanan' }}
           </button>
         </div>
       </div>
-    </div>
+    </transition>
 
-    <div class="pagination">
-      <button
-        class="pagination-btn"
-        :disabled="currentPage === 1"
-        @click="previousPage"
-      >
-        <svg
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-        >
-          <polyline points="15 18 9 12 15 6"></polyline>
-        </svg>
-      </button>
-
-      <button
-        v-for="page in totalPages"
-        :key="page"
-        :class="['pagination-btn', { active: currentPage === page }]"
-        @click="goToPage(page)"
-      >
-        {{ page }}
-      </button>
-
-      <button
-        class="pagination-btn"
-        :disabled="currentPage === totalPages"
-        @click="nextPage"
-      >
-        <svg
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-        >
-          <polyline points="9 18 15 12 9 6"></polyline>
-        </svg>
-      </button>
-    </div>
-
-    <!-- PANEL KERANJANG: Muncul jika ada item -->
-    <div class="cart-panel" v-if="cartItems.length > 0">
-      <div class="cart-panel-header">
-        <h3 class="cart-panel-title">Keranjang Belanja</h3>
-        <button class="clear-cart-button" @click="clearCart">Hapus</button>
+    <div class="footer-panel-empty" v-if="cartItems.length === 0 && bookings.length > 0">
+      <div class="cart-total">
+        <span>Total Booking:</span>
+        <span class="total-value">Bayar di Kasir</span>
       </div>
-
-      <div class="cart-items">
-        <div v-for="item in cartItems" :key="item.id" class="cart-item">
-          <img :src="item.image" :alt="item.name" class="cart-item-image" />
-          <div class="cart-item-info">
-            <h4 class="cart-item-name">
-              {{ item.name }}
-              <span
-                :class="[
-                  'cart-item-badge',
-                  item.type === 'beli' ? 'badge-beli' : 'badge-sewa',
-                ]"
-              >
-                {{ item.type === "beli" ? "Beli" : "Sewa" }}
-              </span>
-            </h4>
-            <p class="cart-item-category">{{ item.category }}</p>
-          </div>
-          <div class="cart-item-quantity">
-            <button class="quantity-btn" @click="decreaseQuantity(item)">
-              -
-            </button>
-            <span class="quantity-value">{{ item.quantity }}</span>
-            <button
-              class="quantity-btn"
-              @click="increaseQuantity(item)"
-              :disabled="item.quantity >= item.maxStock || item.quantity >= 10"
-            >
-              +
-            </button>
-          </div>
-          <p class="cart-item-price">
-            {{ formatCurrency(item.price * item.quantity) }}
-          </p>
-          <button class="remove-item-button" @click="removeFromCart(item.id)">
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-            >
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
-          </button>
-        </div>
-      </div>
-
-      <div class="cart-panel-footer">
-        <div class="cart-total">
-          <span class="total-label">Total:</span>
-          <span class="total-value">{{ formatCurrency(cartTotal) }}</span>
-        </div>
-        <button class="checkout-button" @click="checkout">
-          Lihat Keranjang Baru
-        </button>
-      </div>
+      <button class="continue-button" @click="router.push('/payment')">Selesai (Bayar Nanti)</button>
     </div>
 
-    <!-- PANEL LANJUTKAN: Muncul jika keranjang kosong -->
-    <div class="footer-panel-empty" v-if="cartItems.length === 0">
-      <button class="continue-button" @click="goToPayment">Lanjutkan</button>
-    </div>
   </div>
 </template>
 
-<script>
-// --- FIX: IMPORT HEADERPAGE ---
-export default {
-  name: "MemancingSection",
-  data() {
-    // Definisi data produk dengan penambahan properti 'stock'
-    return {
-      currentPage: 1,
-      totalPages: 9,
-      cartItems: [],
+<script setup>
+import { ref, computed, onMounted } from "vue";
+import { useRouter } from "vue-router";
 
-      products: [
-        {
-          id: 1,
-          name: "Kail Pancing A-1",
-          category: "Kail Pancing",
-          price: 5000,
-          rating: 4,
-          type: "beli",
-          image: new URL("@/assets/img/cart/kaila-1.avif", import.meta.url)
-            .href,
-          stock: 5, // STOK DITAMBAHKAN
-        },
-        {
-          id: 2,
-          name: "Kail Pancing Premium",
-          category: "Kail Pancing",
-          price: 8000,
-          rating: 5,
-          type: "sewa",
-          image: new URL("@/assets/img/cart/premium.avif", import.meta.url)
-            .href,
-          stock: 2, // STOK DITAMBAHKAN
-        },
-        {
-          id: 3,
-          name: "Joran Teleskopik 3m",
-          category: "Joran",
-          price: 150000,
-          rating: 4,
-          type: "beli",
-          image: new URL(
-            "@/assets/img/cart/joranteleskopik3m.avif",
-            import.meta.url
-          ).href,
-          stock: 0, // STOK HABIS
-        },
-        {
-          id: 4,
-          name: "Reel Spinning X-Power",
-          category: "Reel",
-          price: 70000,
-          rating: 5,
-          type: "sewa",
-          image: new URL("@/assets/img/cart/reel.avif", import.meta.url).href,
-          stock: 3, // STOK DITAMBAHKAN
-        },
-        {
-          id: 5,
-          name: "Senar PE Maxima 0.25mm",
-          category: "Senar",
-          price: 50000,
-          rating: 4,
-          type: "sewa",
-          image: new URL("@/assets/img/cart/adunfishing.avif", import.meta.url)
-            .href,
-          stock: 10, // STOK DITAMBAHKAN
-        },
-        {
-          id: 6,
-          name: "Senar Monofilamen K-Flex",
-          category: "Senar",
-          price: 35000,
-          rating: 5,
-          type: "beli",
-          image: new URL("@/assets/img/cart/senarsuper.avif", import.meta.url)
-            .href,
-          stock: 7, // STOK DITAMBAHKAN
-        },
-        {
-          id: 7,
-          name: "Umpan Buatan Minnow",
-          category: "Umpan",
-          price: 15000,
-          rating: 4,
-          type: "beli",
-          image: new URL("@/assets/img/cart/minnow.avif", import.meta.url).href,
-          stock: 12,
-        },
-        {
-          id: 8,
-          name: "Kotak Pancing Jumbo",
-          category: "Aksesoris",
-          price: 45000,
-          rating: 3,
-          type: "beli",
-          image: new URL("@/assets/img/cart/jumbo.avif", import.meta.url).href,
-          stock: 4,
-        },
-        {
-          id: 9,
-          name: "Jaring Ikan Lipat",
-          category: "Aksesoris",
-          price: 60000,
-          rating: 5,
-          type: "sewa",
-          image: new URL("@/assets/img/cart/jaring.avif", import.meta.url).href,
-          stock: 1,
-        },
-        {
-          id: 10,
-          name: "Joran Casting Pro-Series",
-          category: "Joran",
-          price: 280000,
-          rating: 5,
-          type: "beli",
-          image: new URL("@/assets/img/cart/joranpro.avif", import.meta.url)
-            .href,
-          stock: 6,
-        },
-      ],
+const router = useRouter();
+const placeholderImg = 'https://via.placeholder.com/150?text=Alat';
+
+// --- STATE ---
+const bookings = ref([]);
+const products = ref([]);
+const cartItems = ref([]);
+const isLoadingTools = ref(true);
+const isProcessing = ref(false);
+
+// --- 1. FETCH DATA ---
+onMounted(async () => {
+  const token = localStorage.getItem('kailku_token');
+  if (!token) {
+    alert("Silakan login terlebih dahulu");
+    router.push('/login');
+    return;
+  }
+
+  // A. Fetch Booking (Tiket)
+  try {
+    const resBook = await fetch('http://localhost:3000/bookings/my', {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (resBook.ok) {
+      const data = await resBook.json();
+      // Ambil booking yang statusnya pending (baru dibuat)
+      // Batasi 5 terakhir biar ga penuh
+      bookings.value = data.filter(b => b.status === 'pending').slice(0, 5);
+    }
+  } catch (e) { console.error(e); }
+
+  // B. Fetch Alat Pancing (Produk)
+  try {
+    const resTools = await fetch('http://localhost:3000/alat_pancing');
+    if (resTools.ok) {
+      products.value = await resTools.json();
+    }
+  } catch (e) { console.error(e); }
+  finally { isLoadingTools.value = false; }
+});
+
+// --- 2. CART LOGIC ---
+function addToCart(product, tipe) {
+  // Cek stok di frontend (stok asli dijaga backend juga)
+  if (product.stok <= 0) return alert("Stok habis!");
+
+  const existing = cartItems.value.find(i => i.id === product.id && i.tipe === tipe);
+
+  if (existing) {
+    if (existing.jumlah < product.stok) existing.jumlah++;
+    else alert("Stok tidak cukup!");
+  } else {
+    cartItems.value.push({
+      id: product.id,
+      nama: product.nama,
+      image_url: product.image_url,
+      tipe: tipe,
+      harga: tipe === 'sewa' ? product.harga_sewa : product.harga_beli,
+      jumlah: 1,
+      stok: product.stok
+    });
+  }
+}
+
+function removeItem(index) {
+  cartItems.value.splice(index, 1);
+}
+
+function clearCart() {
+  if (confirm("Hapus semua alat dari keranjang?")) {
+    cartItems.value = [];
+  }
+}
+
+const grandTotal = computed(() => {
+  return cartItems.value.reduce((sum, item) => sum + (item.harga * item.jumlah), 0);
+});
+
+// --- 3. CHECKOUT ---
+async function handleCheckout() {
+  const token = localStorage.getItem('kailku_token');
+  isProcessing.value = true;
+
+  try {
+    const payload = {
+      items: cartItems.value.map(item => ({
+        id: item.id,
+        tipe: item.tipe,
+        jumlah: item.jumlah
+      }))
     };
-  },
 
-  computed: {
-    cartTotal() {
-      return this.cartItems.reduce(
-        (total, item) => total + item.price * item.quantity,
-        0
-      );
-    },
-  },
+    const res = await fetch('http://localhost:3000/orders', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(payload)
+    });
 
-  methods: {
-    formatCurrency(amount) {
-      return new Intl.NumberFormat("id-ID", {
-        style: "currency",
-        currency: "IDR",
-        minimumFractionDigits: 0,
-      }).format(amount);
-    },
+    if (!res.ok) throw new Error("Gagal membuat pesanan");
 
-    addToCart(product) {
-      if (product.stock <= 0) {
-        alert("Stok produk ini habis!");
-        return;
-      }
+    alert("Pesanan Alat Berhasil! Silakan bayar di kasir.");
+    cartItems.value = []; // Kosongkan cart
+    router.push('/payment'); // Pindah ke profil
 
-      const existingItem = this.cartItems.find(
-        (item) => item.id === product.id
-      );
+  } catch (err) {
+    alert(err.message);
+  } finally {
+    isProcessing.value = false;
+  }
+}
 
-      // Cari produk asli di array 'products' untuk update stok
-      const productInStock = this.products.find((p) => p.id === product.id);
-
-      if (existingItem) {
-        if (existingItem.quantity < productInStock.stock) {
-          existingItem.quantity++;
-        } else {
-          alert("Stok maksimum telah tercapai!");
-          return;
-        }
-      } else {
-        this.cartItems.push({
-          ...product,
-          quantity: 1,
-          maxStock: productInStock.stock, // Simpan stok max saat ini
-        });
-      }
-
-      // Kurangi stok pada produk asli
-      if (productInStock) {
-        productInStock.stock--;
-      }
-
-      this.$emit("cart-updated", this.cartItems);
-    },
-
-    removeFromCart(productId) {
-      const removedItem = this.cartItems.find((item) => item.id === productId);
-
-      if (removedItem) {
-        // Tambahkan kembali stok sejumlah quantity yang dihapus
-        const productInStock = this.products.find((p) => p.id === productId);
-        if (productInStock) {
-          productInStock.stock += removedItem.quantity;
-        }
-      }
-
-      this.cartItems = this.cartItems.filter((item) => item.id !== productId);
-      this.$emit("cart-updated", this.cartItems);
-    },
-
-    increaseQuantity(item) {
-      // Cek apakah kuantitas masih di bawah stok maksimum (maxStock) yang disimpan
-      const productInStock = this.products.find((p) => p.id === item.id);
-
-      if (item.quantity < item.maxStock && item.quantity < 10) {
-        // Batas maksimal 10 atau stok max
-        item.quantity++;
-
-        // Kurangi stok pada produk asli
-        if (productInStock) {
-          productInStock.stock--;
-        }
-      }
-    },
-
-    decreaseQuantity(item) {
-      const productInStock = this.products.find((p) => p.id === item.id);
-
-      if (item.quantity > 1) {
-        item.quantity--;
-
-        // Tambahkan kembali stok pada produk asli
-        if (productInStock) {
-          productInStock.stock++;
-        }
-      } else {
-        // Jika kuantitas 1 dan dikurangi, hapus dari keranjang (stok dikembalikan di removeFromCart)
-        this.removeFromCart(item.id);
-      }
-    },
-
-    clearCart() {
-      if (confirm("Apakah Anda yakin ingin menghapus semua item?")) {
-        // Kembalikan semua stok sebelum mengosongkan keranjang
-        this.cartItems.forEach((item) => {
-          const productInStock = this.products.find((p) => p.id === item.id);
-          if (productInStock) {
-            productInStock.stock += item.quantity;
-          }
-        });
-
-        this.cartItems = [];
-        this.$emit("cart-updated", this.cartItems);
-      }
-    },
-
-    isInCart(productId) {
-      return this.cartItems.some((item) => item.id === productId);
-    },
-
-    goToPage(page) {
-      this.currentPage = page;
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    },
-
-    previousPage() {
-      if (this.currentPage > 1) {
-        this.currentPage--;
-        window.scrollTo({ top: 0, behavior: "smooth" });
-      }
-    },
-
-    nextPage() {
-      if (this.currentPage < this.totalPages) {
-        this.currentPage++;
-        window.scrollTo({ top: 0, behavior: "smooth" });
-      }
-    },
-
-    checkout() {
-      this.$emit("proceed-to-checkout", {
-        items: this.cartItems,
-        total: this.cartTotal,
-      });
-      console.log("Checkout:", this.cartItems);
-    },
-
-    // --- METHOD BARU UNTUK TOMBOL LANJUTKAN ---
-    goToPayment() {
-      // Pastikan router tersedia. Jika menggunakan Options API,
-      // Anda akan menggunakan 'this.$router.push'.
-      // Jika Anda setup router di main.js dan app.use(router),
-      // this.$router seharusnya bekerja.
-      // Jika tidak, Anda mungkin perlu mengimpor router di sini.
-      // Untuk kesederhanaan, kita asumsikan $router tersedia.
-      this.$router.push("/payment");
-    },
-  },
-};
+// --- HELPERS ---
+const formatCurrency = (val) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(val);
+const formatDate = (d) => new Date(d).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
 </script>
 
 <style scoped>
-/* Tambahkan style untuk menampilkan stok */
-.product-stock {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--color-success); /* Warna hijau untuk stok tersedia */
-  margin: 0 0 12px 0;
-}
+/* Gunakan Style Asli Kamu + Sedikit Tambahan untuk Ticket */
 
-.product-stock.out-of-stock {
-  color: var(--color-danger); /* Warna merah untuk stok habis */
-}
-
-/* ===== VARIABEL WARNA ===== */
-/* Pastikan variabel ini didefinisikan di global style Anda atau di sini */
 :root {
   --color-primary: #03045e;
   --color-secondary: #48cae4;
@@ -485,60 +260,107 @@ export default {
   --color-gray-200: #e5e7eb;
   --color-gray-600: #4b5563;
   --color-gray-800: #1f2937;
-  --color-black: #000000; /* Tambahkan definisi warna hitam */
 }
 
-/* (Style lainnya tetap sama) */
-
-/* ... sisanya dari style Anda yang tidak berubah ... */
-
-/* ===== CONTAINER ===== */
 .cart-container {
   max-width: 1280px;
   margin: 0 auto;
-  /* Tingkatkan padding atas untuk memberi ruang di bawah header */
-  padding: 24px; /* Ganti atau tambahkan baris di bawah */
-  padding-top: 100px; /* Nilai contoh. Sesuaikan sesuai tinggi header Anda, misalnya 80px atau 100px */
+  padding: 100px 20px 140px;
+  /* Padding bawah besar buat panel */
   background-color: #fafafa;
   min-height: 100vh;
-  /* PENTING: Tambahkan padding-bottom agar panel fixed tidak menutupi konten */
-  padding-bottom: 120px;
 }
 
-/* ===== PRODUCTS GRID ===== */
-.products-grid {
-  /* PENYESUAIAN PENTING: Menambahkan margin-top agar konten produk tidak terpotong header */
-  /* Nilai margin-top ini harus lebih besar dari tinggi header (misalnya 100px jika header tingginya sekitar 80px) */
-  margin-top: 20px; /* Nilai ini mungkin perlu disesuaikan tergantung tinggi aktual HeaderPage Anda */
+.section-title {
+  font-size: 1.5rem;
+  color: var(--color-gray-800);
+  margin-bottom: 20px;
+  font-weight: 800;
+}
+
+/* --- STYLE TIKET (Baru) --- */
+.booking-section {
+  margin-bottom: 40px;
+}
+
+.booking-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 15px;
+}
+
+.ticket-card {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  background: #fff;
+  border: 1px solid #e0e7ff;
+  border-left: 5px solid #023e8a;
+  border-radius: 12px;
+  padding: 15px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.ticket-icon {
+  font-size: 2rem;
+}
+
+.ticket-info h3 {
+  margin: 0 0 5px;
+  font-size: 1rem;
+  color: #023e8a;
+}
+
+.loc {
+  color: #666;
+  font-size: 0.85rem;
+  margin: 0 0 5px;
+}
+
+.ticket-meta {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #555;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.badge.pending {
+  background: #fff3cd;
+  color: #d97706;
+  padding: 3px 8px;
+  border-radius: 10px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+
+/* --- STYLE PRODUK (Modifikasi dari punyamu) --- */
+.products-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 24px;
-  padding: 0 40px 40px 40px; /* Hapus padding-top agar margin-top di atas yang mengontrol jarak */
-  max-width: 1400px;
-  margin-left: auto;
-  margin-right: auto;
+  margin-bottom: 40px;
 }
 
 .product-card {
-  background-color: var(--color-white);
+  background: white;
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  transition: all 0.3s ease;
+  transition: 0.3s;
+  border: 1px solid #f0f0f0;
 }
 
 .product-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
 }
 
-/* ===== PRODUCT IMAGE ===== */
 .product-image-wrapper {
+  height: 180px;
   position: relative;
-  width: 100%;
-  height: 200px;
-  overflow: hidden;
-  background-color: var(--color-gray-100);
 }
 
 .product-image {
@@ -549,204 +371,139 @@ export default {
 
 .product-badge {
   position: absolute;
-  top: 12px;
-  right: 12px;
-  padding: 6px 14px;
+  top: 10px;
+  right: 10px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #023e8a;
+  padding: 4px 10px;
   border-radius: 20px;
-  font-size: 12px;
-  font-weight: 700;
+  font-size: 0.7rem;
+  font-weight: 800;
   text-transform: uppercase;
 }
 
-.cart-item-badge {
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  margin-left: 8px;
-  vertical-align: middle;
-}
-
-.badge-beli {
-  background-color: #dcfce7;
-  color: #166534;
-}
-
-.badge-sewa {
-  background-color: #fef3c7;
-  color: #92400e;
-}
-
-/* ===== PRODUCT INFO ===== */
 .product-info {
-  padding: 16px;
+  padding: 15px;
 }
 
 .product-name {
-  font-size: 16px;
+  font-size: 1rem;
+  margin: 0 0 5px;
+  color: #333;
   font-weight: 700;
-  color: var(--color-gray-800);
-  margin: 0 0 8px 0;
+  height: 2.4em;
+  overflow: hidden;
 }
 
-.product-rating {
+.product-stock {
+  font-size: 0.8rem;
+  color: #10b981;
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+
+.product-stock.out-of-stock {
+  color: #ef4444;
+}
+
+.price-actions {
   display: flex;
-  gap: 2px;
-  margin-bottom: 12px;
-}
-
-.star-icon {
-  color: var(--color-gray-200);
-  transition: color 0.2s ease;
-}
-
-.star-icon.filled {
-  color: #fbbf24;
-}
-
-.product-price {
-  font-size: 18px;
-  font-weight: 800;
-  color: var(--color-primary);
-  margin: 0 0 12px 0;
-}
-
-.add-to-cart-button {
-  width: 100%;
-  padding: 10px;
-  background-color: var(--color-primary);
-  color: var(--color-white);
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.add-to-cart-button:hover:not(:disabled) {
-  background-color: #020338;
-}
-
-.add-to-cart-button:disabled {
-  background-color: var(--color-gray-200);
-  color: var(--color-gray-600);
-  cursor: not-allowed;
-}
-
-/* ===== PAGINATION ===== */
-.pagination {
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  flex-direction: column;
   gap: 8px;
-  padding: 40px;
 }
 
-.pagination-btn {
-  min-width: 40px;
-  height: 40px;
+.action-row {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  justify-content: center;
-  border: 2px solid var(--color-gray-200);
-  border-radius: 8px;
-  background-color: var(--color-white);
-  color: var(--color-gray-600);
-  font-size: 14px;
+  font-size: 0.85rem;
+  color: #555;
+}
+
+.add-btn {
+  background: #023e8a;
+  color: white;
+  border: none;
+  padding: 5px 12px;
+  border-radius: 6px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: 0.2s;
 }
 
-.pagination-btn:hover:not(:disabled) {
-  border-color: var(--color-secondary);
-  color: var(--color-secondary);
+.add-btn.outline {
+  background: transparent;
+  color: #023e8a;
+  border: 1px solid #023e8a;
 }
 
-.pagination-btn.active {
-  background-color: var(--color-secondary);
-  border-color: var(--color-secondary);
-  color: var(--color-white);
+.add-btn:hover {
+  opacity: 0.8;
 }
 
-.pagination-btn:disabled {
-  opacity: 0.3;
+.add-btn:disabled {
+  background: #ccc;
+  border-color: #ccc;
+  color: white;
   cursor: not-allowed;
 }
 
-/* ===== CART PANEL ===== */
-.cart-panel {
+
+/* --- CART PANEL --- */
+.cart-panel,
+.footer-panel-empty {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
-  background-color: var(--color-white);
-  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.15);
+  background: white;
+  box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.1);
   border-top-left-radius: 24px;
   border-top-right-radius: 24px;
-  max-height: 400px;
+  z-index: 1000;
+  padding: 20px;
+  max-height: 50vh;
   display: flex;
   flex-direction: column;
-  z-index: 1000;
 }
 
 .cart-panel-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  padding: 20px 24px;
-  border-bottom: 2px solid var(--color-gray-100);
-}
-
-.cart-panel-title {
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--color-gray-800);
-  margin: 0;
+  margin-bottom: 15px;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 10px;
 }
 
 .clear-cart-button {
-  padding: 6px 16px;
-  background-color: transparent;
-  color: var(--color-danger);
-  border: 1px solid var(--color-danger);
+  color: #ef4444;
+  background: none;
+  border: 1px solid #ef4444;
   border-radius: 6px;
-  font-size: 13px;
-  font-weight: 600;
+  padding: 4px 10px;
   cursor: pointer;
-  transition: all 0.3s ease;
 }
 
-.clear-cart-button:hover {
-  background-color: var(--color-danger);
-  color: var(--color-white);
-}
-
-/* ===== CART ITEMS ===== */
 .cart-items {
-  flex: 1;
   overflow-y: auto;
-  padding: 16px 24px;
-  max-height: 240px;
+  flex: 1;
+  margin-bottom: 15px;
 }
 
 .cart-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px;
-  background-color: var(--color-gray-50);
-  border-radius: 12px;
-  margin-bottom: 12px;
+  gap: 15px;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #f9f9f9;
 }
 
 .cart-item-image {
-  width: 60px;
-  height: 60px;
-  object-fit: cover;
+  width: 50px;
+  height: 50px;
   border-radius: 8px;
+  object-fit: cover;
 }
 
 .cart-item-info {
@@ -754,164 +511,113 @@ export default {
 }
 
 .cart-item-name {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--color-gray-800);
-  margin: 0 0 4px 0;
+  margin: 0;
+  font-size: 0.9rem;
 }
 
-.cart-item-category {
-  font-size: 12px;
-  color: var(--color-gray-600);
-  margin: 0;
+.cart-item-badge {
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 5px;
+}
+
+.badge-beli {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.badge-sewa {
+  background: #fef3c7;
+  color: #92400e;
 }
 
 .cart-item-quantity {
   display: flex;
   align-items: center;
   gap: 8px;
-  background-color: var(--color-white);
-  border-radius: 8px;
-  padding: 4px;
 }
 
 .quantity-btn {
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: var(--color-secondary);
-  color: var(--color-white); /* Ubah agar lebih terlihat */
+  width: 25px;
+  height: 25px;
+  background: #e0f2fe;
   border: none;
-  border-radius: 6px;
-  font-size: 16px;
-  font-weight: 700;
+  border-radius: 4px;
+  color: #023e8a;
+  font-weight: bold;
   cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.quantity-btn:hover {
-  background-color: #3aa8c1;
-}
-
-.quantity-btn:disabled {
-  background-color: var(--color-gray-200);
-  color: var(--color-gray-600);
-  cursor: not-allowed;
-}
-
-.quantity-value {
-  min-width: 24px;
-  text-align: center;
-  font-weight: 700;
-  color: var(--color-gray-800);
-}
-
-.cart-item-price {
-  font-size: 15px;
-  font-weight: 800;
-  color: var(--color-primary);
-  margin: 0;
-  min-width: 100px;
-  text-align: right;
 }
 
 .remove-item-button {
   background: none;
   border: none;
-  color: var(--color-danger);
+  color: #ccc;
   cursor: pointer;
-  padding: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s ease;
+  font-size: 1.2rem;
 }
 
 .remove-item-button:hover {
-  transform: scale(1.1);
+  color: #ef4444;
 }
 
-/* ===== CART FOOTER ===== */
 .cart-panel-footer {
-  padding: 20px 24px;
-  border-top: 2px solid var(--color-gray-100);
-  background-color: var(--color-white);
-}
-
-.cart-total {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  border-top: 1px solid #eee;
+  padding-top: 15px;
 }
 
 .total-label {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--color-gray-600);
+  font-size: 0.9rem;
+  color: #666;
 }
 
 .total-value {
-  font-size: 24px;
+  font-size: 1.4rem;
   font-weight: 800;
-  color: var(--color-primary);
+  color: #023e8a;
+  display: block;
 }
 
-.checkout-button {
-  width: 100%;
-  padding: 14px;
-  background: linear-gradient(135deg, var(--color-secondary) 0%, #3aa8c1 100%);
-  color: var(--color-black);
-  border: 1px solid var(--color-secondary);
-  border-radius: 12px;
-  font-size: 16px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(72, 202, 228, 0.3);
-}
-
-.checkout-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(0, 213, 255, 0.4);
-}
-
-/* --- STYLE BARU UNTUK PANEL KOSONG --- */
-.footer-panel-empty {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background-color: var(--color-white);
-  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.15);
-  border-top-left-radius: 24px;
-  border-top-right-radius: 24px;
-  padding: 20px 24px;
-  z-index: 1000;
-}
-
+.checkout-button,
 .continue-button {
-  width: 100%;
-  padding: 14px;
-  background: linear-gradient(135deg, var(--color-primary) 0%, #020338 100%);
-  color: var(--color-white);
-  border: 1px solid var(--color-primary);
-  border-radius: 12px;
-  font-size: 16px;
+  background: #023e8a;
+  color: white;
+  padding: 12px 30px;
+  border-radius: 50px;
+  border: none;
   font-weight: 700;
+  font-size: 1rem;
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(3, 4, 94, 0.3);
-}
-.continue-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(3, 4, 94, 0.4);
 }
 
-/* ===== RESPONSIVE ===== */
-@media (max-width: 768px) {
-  /* ... (Style responsif tetap sama) ... */
+.checkout-button:disabled {
+  background: #ccc;
+}
+
+/* Animation */
+.slide-up-enter-active,
+.slide-up-leave-active {
+  transition: transform 0.3s ease;
+}
+
+.slide-up-enter-from,
+.slide-up-leave-to {
+  transform: translateY(100%);
+}
+
+/* Responsive */
+@media (min-width: 768px) {
+
+  .cart-panel,
+  .footer-panel-empty {
+    max-width: 500px;
+    left: auto;
+    right: 20px;
+    bottom: 20px;
+    border-radius: 16px;
+  }
 }
 </style>

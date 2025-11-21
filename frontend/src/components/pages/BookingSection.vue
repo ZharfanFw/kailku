@@ -1,658 +1,722 @@
 <template>
   <div class="booking-page">
+
     <div class="main-content">
-      <!-- LOGIC BARU: Menampilkan pesan error jika kursi penuh -->
-      <div v-if="seatError" class="seat-error-message">
-        {{ seatError }}
+      <div class="venue-header">
+        <h2>Denah Lokasi</h2>
+        <div class="venue-meta" v-if="venueOpenTime">
+          <span class="badge-time">
+            <font-awesome-icon icon="fa-regular fa-clock" />
+            Buka: {{ venueOpenTime.slice(0, 5) }} - {{ venueCloseTime.slice(0, 5) }}
+          </span>
+        </div>
+      </div>
+
+      <div class="global-filter">
+        <div class="filter-header">
+          <strong>🔍 Cek Ketersediaan</strong>
+          <small>(Ubah ini untuk melihat kursi kosong di jam berbeda)</small>
+        </div>
+        <div class="filter-row">
+          <div class="filter-group">
+            <label>Tanggal</label>
+            <input type="date" v-model="globalDate" :min="todayDate" />
+          </div>
+          <div class="filter-group">
+            <label>Jam Cek</label>
+            <select v-model="globalStartTime" :disabled="!globalDate">
+              <option value="">-- Pilih Jam --</option>
+              <option v-for="time in generatedTimeSlots" :key="time" :value="time">{{ time }}</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label>Durasi</label>
+            <select v-model.number="globalDuration">
+              <option v-for="h in 8" :key="h" :value="h">{{ h }} Jam</option>
+            </select>
+          </div>
+        </div>
       </div>
 
       <div class="legend">
         <div class="legend-item">
-          <div class="legend-box available"></div>
-          <span>Masih Kosong</span>
+          <div class="box available"></div> Kosong
         </div>
         <div class="legend-item">
-          <div class="legend-box unavailable"></div>
-          <span>Tidak Tersedia</span>
+          <div class="box unavailable"></div> Terisi
         </div>
         <div class="legend-item">
-          <div class="legend-box selected"></div>
-          <span>Pilihanmu</span>
+          <div class="box selected"></div> Pilihanmu
         </div>
       </div>
 
-      <div class="seating-layout">
-        <div class="layout-inner-wrap">
-          <!-- Denah kursi tidak berubah, event click-nya masih sama -->
+      <div class="seating-area">
+        <div v-if="isLoadingSeats" class="loading-state">
+          <div class="spinner"></div> Memuat denah...
+        </div>
+
+        <div v-else class="layout-wrapper">
           <div class="seat-row top">
-            <div
-              v-for="id in [41, 40, 39, 38, 37, 36, 35, 34, 33, 32, 31, 30, 29, 28, 27, 26]"
-              :key="id"
-              :class="['seat', getSeatById(id).status]"
-              @click="toggleSeat(id)"
-            >
-              {{ id }}
+            <div v-for="seat in layout.top" :key="seat.id" :class="['seat', getSeatVisualStatus(seat)]"
+              @click="handleSeatClick(seat)">
+              {{ seat.id }}
             </div>
           </div>
           <div class="middle-section">
-            <div class="seat-column left">
-              <div
-                v-for="id in [42, 43, 44, 45, 46, 47, 48, 49]"
-                :key="id"
-                :class="['seat', getSeatById(id).status]"
-                @click="toggleSeat(id)"
-              >
-                {{ id }}
+            <div class="seat-col left">
+              <div v-for="seat in layout.left" :key="seat.id" :class="['seat', getSeatVisualStatus(seat)]"
+                @click="handleSeatClick(seat)">
+                {{ seat.id }}
               </div>
             </div>
-            <div class="pond">Kolam Ikan</div>
-            <div class="seat-column right">
-              <div
-                v-for="id in [25, 24, 23, 22, 21, 20, 19, 18]"
-                :key="id"
-                :class="['seat', getSeatById(id).status]"
-                @click="toggleSeat(id)"
-              >
-                {{ id }}
+            <div class="pond">
+              <div class="water"><span>KOLAM</span></div>
+            </div>
+            <div class="seat-col right">
+              <div v-for="seat in layout.right" :key="seat.id" :class="['seat', getSeatVisualStatus(seat)]"
+                @click="handleSeatClick(seat)">
+                {{ seat.id }}
               </div>
             </div>
           </div>
           <div class="seat-row bottom">
-            <div
-              v-for="id in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]"
-              :key="id"
-              :class="['seat', getSeatById(id).status]"
-              @click="toggleSeat(id)"
-            >
-              {{ id }}
+            <div v-for="seat in layout.bottom" :key="seat.id" :class="['seat', getSeatVisualStatus(seat)]"
+              @click="handleSeatClick(seat)">
+              {{ seat.id }}
             </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- BAGIAN INI BERUBAH TOTAL -->
     <div class="sidebar">
-      <!-- LOGIC BARU: Looping (v-for) untuk setiap form booking -->
+      <h3>Daftar Pesanan</h3>
+
+      <div v-if="myBookings.length === 0" class="empty-state">
+        <p>Pilih Tanggal & Jam di kiri, lalu klik kursi untuk menambahkan.</p>
+      </div>
+
       <div class="booking-list">
-        <div
-          v-for="(booking, index) in bookings"
-          :key="booking.id"
-          class="booking-info"
-        >
-          <div class="booking-header">
-            <h3>Detail Booking #{{ index + 1 }}</h3>
-            <!-- Tombol hapus, tidak muncul jika hanya ada 1 booking -->
-            <button
-              v-if="bookings.length > 1"
-              @click="removeBooking(booking.id)"
-              class="remove-btn"
-            >
-              Hapus
-            </button>
+        <div v-for="(booking, index) in myBookings" :key="booking.tempId" class="booking-card">
+          <div class="card-header">
+            <span class="seat-badge">Kursi #{{ booking.no_kursi }}</span>
+            <button @click="removeBooking(index)" class="btn-del">Hapus</button>
           </div>
 
-          <!-- Menampilkan kursi yang terhubung ke booking ini -->
-          <div class="info-item linked-seat">
-            <label>Kursi Terpilih</label>
-            <span :class="['seat-display', { 'not-selected': !booking.selectedSeatId }]">
-              {{ booking.selectedSeatId ? `No. ${booking.selectedSeatId}` : "Pilih kursi..." }}
-            </span>
-          </div>
+          <div class="card-body">
+            <div class="form-group-sm">
+              <label>Tanggal</label>
+              <input type="date" v-model="booking.tanggal" :min="todayDate"
+                @change="fetchSpecificSeatSchedule(booking)" />
+            </div>
 
-          <div class="info-item">
-            <label :for="`booking-date-${booking.id}`">Tanggal Booking</label>
-            <input
-              type="date"
-              :id="`booking-date-${booking.id}`"
-              v-model="booking.bookingDate"
-            />
-          </div>
-          <div class="info-item">
-            <label :for="`start-time-${booking.id}`">Waktu Mulai</label>
-            <input
-              type="time"
-              :id="`start-time-${booking.id}`"
-              v-model="booking.startTime"
-            />
-          </div>
-          <div class="info-item">
-            <label :for="`duration-${booking.id}`">Durasi (jam)</label>
-            <!-- PERUBAHAN UTAMA: DARI <input> MENJADI <select> -->
-            <select
-              :id="`duration-${booking.id}`"
-              v-model.number="booking.duration"
-            >
-              <option v-for="h in 8" :key="h" :value="h">
-                {{ h }} jam
-              </option>
-            </select>
+            <div class="form-group-sm">
+              <label>Jam Mulai</label>
+              <select v-model="booking.start" :disabled="booking.isLoadingSchedule">
+                <option value="" disabled>{{ booking.isLoadingSchedule ? 'Cek..' : 'Pilih' }}</option>
+                <option v-for="time in booking.availableStartTimes" :key="time" :value="time">{{ time }}</option>
+              </select>
+            </div>
+
+            <div class="form-group-sm">
+              <label>Durasi</label>
+              <select v-model.number="booking.durasi">
+                <option v-for="h in 8" :key="h" :value="h">{{ h }} Jam</option>
+              </select>
+            </div>
+
+            <div class="price-calc">
+              Subtotal: <strong>{{ formatCurrency(PRICE_PER_HOUR * booking.durasi) }}</strong>
+            </div>
+
+            <div v-if="booking.errorMsg" class="error-text">{{ booking.errorMsg }}</div>
           </div>
         </div>
       </div>
 
       <div class="summary">
-        <!-- Tombol ini sekarang memanggil addBooking -->
-        <button
-          class="add-person-btn"
-          @click="addBooking"
-          :disabled="!canAddBooking"
-        >
-          {{ canAddBooking ? "Tambah Orang +1" : "Maksimal 5 Orang" }}
-        </button>
-
-        <div class="total-price">
-          Total Harga
-          <span>{{ formattedTotalPrice }}</span>
+        <div class="total-row">
+          <span>Total ({{ myBookings.length }} Kursi)</span>
+          <span class="total-val">{{ formatCurrency(totalPrice) }}</span>
         </div>
-        <button class="continue-btn" @click="router.push('/cart')">Lanjut Sewa/Beli Alat</button>
+        <button class="btn-checkout" @click="submitBookings" :disabled="myBookings.length === 0 || isSubmitting">
+          {{ isSubmitting ? 'Memproses...' : 'Lanjut Pembayaran' }}
+        </button>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
-import { useRouter } from "vue-router";
+import { ref, computed, onMounted, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
+
+const route = useRoute();
 const router = useRouter();
 
+const VENUE_ID = route.params.id || 1;
+const PRICE_PER_HOUR = 25000;
+const MAX_BOOKINGS_PER_USER = 5;
+const todayDate = new Date().toISOString().split('T')[0];
 
-const PRICE_PER_SEAT_PER_HOUR = 10000;
-const MAX_BOOKINGS = 5;
-let nextBookingId = 2; // ID unik untuk booking baru
+// State Data Tempat
+const venueCapacity = ref(0);
+const venueOpenTime = ref("08:00:00");
+const venueCloseTime = ref("22:00:00");
 
-// --- LOGIC BARU: State untuk pesan error ---
-const seatError = ref(null);
+// State Kursi (Visual)
+const seats = ref([]);
+const bookedSeatIdsGlobal = ref([]); // ID kursi yang merah di peta (berdasarkan filter global)
+const isLoadingSeats = ref(false);
 
-// Fungsi helper untuk membuat objek booking baru
-const createDefaultBooking = (id) => ({
-  id: id,
-  bookingDate: new Date().toISOString().split("T")[0],
-  startTime: "09:00",
-  duration: 1, // Default durasi 1 jam
-  selectedSeatId: null, // Setiap booking punya 1 kursi
-});
+// State Filter Global (Hanya untuk visualisasi Peta)
+const globalDate = ref(todayDate);
+const globalStartTime = ref("");
+const globalDuration = ref(1);
 
-// --- DATA REAKTIF ---
-// State 'bookings' sekarang adalah array of objects
-const bookings = ref([createDefaultBooking(1)]); // Mulai dengan 1 form booking
+// State Keranjang Belanja
+const myBookings = ref([]);
+const isSubmitting = ref(false);
 
-// State 'seats' tetap sama, sebagai master list
-const seats = ref([
-  { id: 1, status: "available" }, { id: 2, status: "available" }, { id: 3, status: "available" },
-  { id: 4, status: "available" }, { id: 5, status: "available" }, { id: 6, status: "available" },
-  { id: 7, status: "unavailable" }, { id: 8, status: "unavailable" }, { id: 9, status: "available" },
-  { id: 10, status: "available" }, { id: 11, status: "unavailable" }, { id: 12, status: "unavailable" },
-  { id: 13, status: "unavailable" }, { id: 14, status: "unavailable" }, { id: 15, status: "available" },
-  { id: 16, status: "available" }, { id: 17, status: "available" },
-  { id: 18, status: "available" }, { id: 19, status: "available" }, { id: 20, status: "available" },
-  { id: 21, status: "available" }, { id: 22, status: "unavailable" }, { id: 23, status: "available" },
-  { id: 24, status: "available" }, { id: 25, status: "unavailable" },
-  { id: 26, status: "available" }, { id: 27, status: "available" }, { id: 28, status: "available" },
-  { id: 29, status: "available" }, { id: 30, status: "available" }, { id: 31, status: "available" },
-  { id: 32, status: "available" }, { id: 33, status: "available" }, { id: 34, status: "available" },
-  { id: 35, status: "unavailable" }, { id: 36, status: "available" }, { id: 37, status: "unavailable" },
-  { id: 38, status: "available" }, { id: 39, status: "available" }, { id: 40, status: "available" },
-  { id: 41, status: "available" },
-  { id: 42, status: "available" }, { id: 43, status: "available" }, { id: 44, status: "unavailable" },
-  { id: 45, status: "unavailable" }, { id: 46, status: "available" }, { id: 47, "status": "unavailable" },
-  { id: 48, status: "unavailable" }, { id: 49, status: "available" },
-]);
-
-// --- COMPUTED PROPERTIES ---
-// Computed untuk menonaktifkan tombol "Tambah"
-const canAddBooking = computed(() => bookings.value.length < MAX_BOOKINGS);
-
-// LOGIC BARU: Total harga dihitung dari SETIAP booking
-const totalPrice = computed(() => {
-  return bookings.value.reduce((total, booking) => {
-    // Hanya hitung harga jika booking tsb punya kursi
-    if (booking.selectedSeatId) {
-      // Karena sudah pakai <select>, value PASTI valid (1-8)
-      // Tapi kita tetap jaga logic validasi ini untuk keamanan
-      const validDuration = Math.min(Math.max(1, booking.duration || 1), 8);
-      return total + PRICE_PER_SEAT_PER_HOUR * validDuration;
+// --- 1. INIT ---
+async function fetchVenueInfo() {
+  try {
+    const res = await fetch(`http://localhost:3000/tempat_mancing/${VENUE_ID}`);
+    const data = await res.json();
+    if (res.ok) {
+      venueCapacity.value = data.jumlah_lapak || 20;
+      venueOpenTime.value = data.jam_buka;
+      venueCloseTime.value = data.jam_tutup;
+      generateSeats(venueCapacity.value);
     }
-    return total;
-  }, 0);
-});
-
-const formattedTotalPrice = computed(() => {
-  return new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    minimumFractionDigits: 0,
-  }).format(totalPrice.value);
-});
-
-// --- METHODS ---
-function getSeatById(id) {
-  return seats.value.find((s) => s.id === id);
+  } catch (err) { console.error(err); }
 }
 
-// LOGIC BARU: Fungsi untuk menambah form booking
-function addBooking() {
-  if (canAddBooking.value) {
-    bookings.value.push(createDefaultBooking(nextBookingId++));
-    seatError.value = null; // Hapus error jika ada
+function generateSeats(total) {
+  const arr = [];
+  for (let i = 1; i <= total; i++) {
+    arr.push({ id: i, status: 'available' });
+  }
+  seats.value = arr;
+
+  // Kalau filter global sudah diisi, cek ketersediaan
+  if (globalStartTime.value) fetchAvailabilityGlobal();
+}
+
+// --- 2. CEK KETERSEDIAAN GLOBAL (Untuk Mewarnai Peta) ---
+async function fetchAvailabilityGlobal() {
+  if (!globalDate.value || !globalStartTime.value) return;
+
+  isLoadingSeats.value = true;
+  try {
+    const params = new URLSearchParams({
+      tempat_id: VENUE_ID,
+      tanggal: globalDate.value,
+      start: globalStartTime.value,
+      durasi: globalDuration.value
+    });
+
+    const res = await fetch(`http://localhost:3000/bookings/check-seats?${params}`);
+    const data = await res.json();
+    bookedSeatIdsGlobal.value = data.bookedSeats || [];
+
+  } catch (err) { console.error(err); }
+  finally { isLoadingSeats.value = false; }
+}
+
+// --- 3. KLIK KURSI (TAMBAH KE KERANJANG) ---
+function handleSeatClick(seat) {
+  // A. Cek apakah kursi ini UNAVAILABLE di jam Global Filter?
+  // Note: Kita izinkan klik 'unavailable' KALAU user mau ganti jamnya nanti di keranjang.
+  // TAPI biar ga bingung, kita blokir aja kalau status visualnya merah.
+  const isUnavailable = bookedSeatIdsGlobal.value.includes(seat.id);
+  if (isUnavailable) return alert("Kursi ini terisi di jam yang dipilih. Coba ganti jam di filter atas.");
+
+  // B. Cek apakah sudah ada di keranjang saya?
+  const idx = myBookings.value.findIndex(b => b.no_kursi === seat.id);
+  if (idx !== -1) {
+    // Hapus (Unselect)
+    myBookings.value.splice(idx, 1);
+  } else {
+    // Tambah Baru
+    if (myBookings.value.length >= MAX_BOOKINGS_PER_USER) return alert("Maksimal 5 kursi.");
+
+    if (!globalStartTime.value) return alert("Pilih Jam Mulai dulu di filter atas.");
+
+    const newBooking = {
+      tempId: Date.now() + Math.random(),
+      no_kursi: seat.id,
+      // Copy nilai dari Global Filter saat ini
+      tanggal: globalDate.value,
+      start: globalStartTime.value,
+      durasi: globalDuration.value,
+      // Properti untuk dropdown individual
+      availableStartTimes: generatedTimeSlots.value, // Default awal (semua slot)
+      isLoadingSchedule: false,
+      errorMsg: ""
+    };
+
+    // Cek jadwal spesifik buat kursi ini (biar dropdown individual-nya akurat)
+    fetchSpecificSeatSchedule(newBooking);
+
+    myBookings.value.push(newBooking);
   }
 }
 
-// LOGIC BARU: Fungsi untuk menghapus form booking
-function removeBooking(bookingId) {
-  const bookingIndex = bookings.value.findIndex((b) => b.id === bookingId);
-  if (bookingIndex === -1) return;
+// Helper Visual Status
+function getSeatVisualStatus(seat) {
+  // 1. Apakah ada di keranjang saya? -> Biru
+  if (myBookings.value.some(b => b.no_kursi === seat.id)) return 'selected';
 
-  const bookingToRemove = bookings.value[bookingIndex];
+  // 2. Apakah rusak? (Manual) -> Abu
+  const rusakIds = [7, 13];
+  if (rusakIds.includes(seat.id)) return 'unavailable';
 
-  // Jika booking yang dihapus punya kursi, buat kursi itu 'available' lagi
-  if (bookingToRemove.selectedSeatId) {
-    const seat = getSeatById(bookingToRemove.selectedSeatId);
-    if (seat) {
-      seat.status = "available";
-    }
-  }
-  // Hapus booking dari array
-  bookings.value.splice(bookingIndex, 1);
+  // 3. Apakah terisi orang lain (berdasarkan Filter Global)? -> Abu
+  if (bookedSeatIdsGlobal.value.includes(seat.id)) return 'unavailable';
+
+  // 4. Kosong -> Putih/Hijau
+  return 'available';
 }
 
-// LOGIC BARU: toggleSeat dimodifikasi
-function toggleSeat(seatId) {
-  const seat = getSeatById(seatId);
-  if (seat.status === "unavailable") {
-    return;
-  }
-  
-  // Hapus error setiap kali user klik
-  seatError.value = null;
+// --- 4. CEK JADWAL INDIVIDUAL (PER KARTU) ---
+// Ini fitur kuncinya! Saat kartu dibuat atau tanggal diganti di kartu,
+// kita cek ke backend: "Kursi X tanggal Y, jam berapa aja yang kosong?"
+async function fetchSpecificSeatSchedule(booking) {
+  if (!booking.tanggal) return;
 
-  if (seat.status === "selected") {
-    // Jika kursi sudah 'selected', user pasti ingin membatalkan
-    seat.status = "available";
-    // Cari booking yang punya kursi ini dan kosongkan
-    const bookingToClear = bookings.value.find(
-      (b) => b.selectedSeatId === seatId
-    );
-    if (bookingToClear) {
-      bookingToClear.selectedSeatId = null;
+  booking.isLoadingSchedule = true;
+
+  // Kalau user ganti tanggal di kartu, reset jam start-nya biar ga invalid
+  // (Kecuali ini panggilan pertama saat add to cart)
+  // booking.start = ""; 
+
+  try {
+    const params = new URLSearchParams({
+      tempat_id: VENUE_ID,
+      no_kursi: booking.no_kursi,
+      tanggal: booking.tanggal
+    });
+
+    // Minta data slot SIBUK dari backend
+    // Backend endpoint /schedule mengembalikan array [{start_time, end_time}]
+    const res = await fetch(`http://localhost:3000/bookings/schedule?${params}`);
+    const bookedSlots = await res.json();
+
+    // Filter ulang Time Slots berdasarkan data sibuk tersebut
+    const validSlots = [];
+    let current = new Date(`2000-01-01T${venueOpenTime.value}`);
+    let end = new Date(`2000-01-01T${venueCloseTime.value}`);
+    end.setHours(end.getHours() - 1); // Buffer durasi min 1 jam
+
+    while (current <= end) {
+      let timeStr = current.toTimeString().slice(0, 5);
+
+      // Cek bentrok
+      const isClash = bookedSlots.some(b => {
+        const bStart = b.start_time.slice(0, 5);
+        const bEnd = b.end_time.slice(0, 5);
+        return timeStr >= bStart && timeStr < bEnd;
+      });
+
+      if (!isClash) validSlots.push(timeStr);
+      current.setMinutes(current.getMinutes() + 60);
     }
-  } else if (seat.status === "available") {
-    // Jika kursi 'available', cari form booking pertama yang kosong
-    const availableBookingSlot = bookings.value.find(
-      (b) => b.selectedSeatId === null
-    );
 
-    if (availableBookingSlot) {
-      // Jika ada form booking kosong, alokasikan kursi ini ke sana
-      availableBookingSlot.selectedSeatId = seatId;
-      seat.status = "selected";
+    booking.availableStartTimes = validSlots;
+
+    // Validasi: Jika jam yang dipilih sekarang jadi ga valid (karena ganti tanggal), reset
+    if (booking.start && !validSlots.includes(booking.start)) {
+      booking.start = "";
+      booking.errorMsg = "Jam sebelumnya tidak tersedia di tanggal ini.";
     } else {
-      // Jika tidak ada form booking kosong
-      seatError.value = "Kapasitas booking penuh. Silakan tambah orang (booking) baru.";
-      console.warn("Tidak ada slot booking kosong.");
+      booking.errorMsg = "";
     }
-  }
+
+  } catch (err) { console.error(err); }
+  finally { booking.isLoadingSchedule = false; }
 }
+
+// --- 5. SUBMIT ---
+async function submitBookings() {
+  // Validasi
+  const invalid = myBookings.value.find(b => !b.start);
+  if (invalid) return alert(`Lengkapi jam untuk Kursi #${invalid.no_kursi}`);
+
+  const token = localStorage.getItem('kailku_token');
+  if (!token) return router.push('/login');
+
+  isSubmitting.value = true;
+  try {
+    for (const b of myBookings.value) {
+      const payload = {
+        tempat_id: VENUE_ID,
+        no_kursi: b.no_kursi,
+        tanggal_booking: b.tanggal,
+        start_time: b.start,
+        duration: b.durasi
+      };
+      const res = await fetch('http://localhost:3000/bookings/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) throw new Error("Gagal booking kursi " + b.no_kursi);
+    }
+    alert("Booking Berhasil!");
+    router.push('/cart');
+  } catch (err) { alert(err.message); }
+  finally { isSubmitting.value = false; }
+}
+
+// --- HELPERS ---
+const generatedTimeSlots = computed(() => {
+  if (!venueOpenTime.value) return [];
+  const slots = [];
+  let current = new Date(`2000-01-01T${venueOpenTime.value}`);
+  let end = new Date(`2000-01-01T${venueCloseTime.value}`);
+  end.setHours(end.getHours() - 1);
+  while (current <= end) {
+    slots.push(current.toTimeString().slice(0, 5));
+    current.setMinutes(current.getMinutes() + 60);
+  }
+  return slots;
+});
+
+// Layout Kolam
+const layout = computed(() => {
+  const total = seats.value.length;
+  if (total === 0) return { top: [], right: [], bottom: [], left: [] };
+  const topCount = Math.ceil(total * 0.35);
+  const rightCount = Math.ceil(total * 0.15);
+  const bottomCount = Math.ceil(total * 0.35);
+  const top = seats.value.slice(0, topCount);
+  const right = seats.value.slice(topCount, topCount + rightCount);
+  const bottom = seats.value.slice(topCount + rightCount, topCount + rightCount + bottomCount);
+  const left = seats.value.slice(topCount + rightCount + bottomCount);
+  return { top, right, bottom, left };
+});
+
+const totalPrice = computed(() => myBookings.value.reduce((sum, b) => sum + (PRICE_PER_HOUR * b.durasi), 0));
+const formatCurrency = (val) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(val);
+const calculateEndTime = (start, dur) => {
+  if (!start) return "--:--";
+  const [h, m] = start.split(':').map(Number);
+  return `${String(h + dur).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+const formatDate = (d) => new Date(d).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+const removeBooking = (i) => myBookings.value.splice(i, 1);
+
+// Watcher Global Filter (Hanya update visual peta, JANGAN RESET CART)
+watch([globalDate, globalStartTime, globalDuration], () => {
+  fetchAvailabilityGlobal();
+});
+
+onMounted(() => fetchVenueInfo());
 </script>
 
 <style scoped>
-/* ... SEMUA STYLE LAMA ANDA TETAP SAMA ... */
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
+/* --- LAYOUT --- */
 .booking-page {
-  width: 100%;
-  max-width: 500px;
+  display: flex;
+  max-width: 1200px;
   margin: 0 auto;
-  background-color: #ffffff;
+  padding: 100px 20px;
+  gap: 30px;
+  min-height: 100vh;
 }
-.main-content {
-  width: 100%;
+
+@media (min-width: 992px) {
+  .booking-page {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+
+  .main-content {
+    flex: 3;
+  }
+
+  .sidebar {
+    flex: 1.3;
+    position: sticky;
+    top: 100px;
+  }
 }
-.sidebar {
-  width: 100%;
-  padding: 0 24px 24px 24px;
-}
-.legend {
+
+/* --- BAGIAN KIRI --- */
+.venue-header {
   display: flex;
-  justify-content: center;
-  gap: 20px;
-  padding: 20px;
-  border-bottom: 1px solid #eee;
-  font-size: 13px;
-  color: #555;
-  flex-wrap: wrap;
+  justify-content: space-between;
+  margin-bottom: 20px;
 }
-.legend-item {
+
+.badge-time {
+  background: #e0f2fe;
+  color: #023e8a;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.global-filter {
+  background: white;
+  padding: 15px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.filter-header {
+  font-size: 0.9rem;
+  color: #333;
+  margin-bottom: 10px;
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 6px;
 }
-.legend-box {
-  width: 16px;
-  height: 16px;
-  border-radius: 3px;
+
+.filter-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 15px;
 }
-.legend-box.available {
-  background-color: #212121;
+
+.filter-group label {
+  font-size: 0.8rem;
+  color: #666;
+  font-weight: 600;
+  margin-bottom: 4px;
+  display: block;
 }
-.legend-box.unavailable {
-  background-color: #d0d0d0;
-  border: 1px solid #bbb;
+
+.filter-group input,
+.filter-group select {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
 }
-.legend-box.selected {
-  background-color: #3498db;
-}
-.seating-layout {
-  padding: 24px;
-  max-width: 100%;
-  margin: 0 auto;
+
+.seating-area {
+  background: white;
+  padding: 30px;
+  border-radius: 16px;
   overflow-x: auto;
-  padding-bottom: 12px;
-  -webkit-overflow-scrolling: touch;
 }
-.layout-inner-wrap {
-  min-width: 580px;
+
+.layout-wrapper {
+  min-width: 600px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
 }
+
 .seat-row,
-.seat-column {
+.seat-col {
   display: flex;
   gap: 6px;
-}
-.seat-row {
   justify-content: center;
-  flex-wrap: nowrap;
 }
-.seat-column {
+
+.seat-col {
   flex-direction: column;
 }
+
 .middle-section {
   display: flex;
   justify-content: space-between;
-  margin: 10px 0;
+  width: 100%;
+  gap: 15px;
 }
+
 .pond {
   flex-grow: 1;
-  display: grid;
-  place-items: center;
-  background-color: #f0f4f8;
-  border-radius: 20px;
-  color: #778ca3;
-  font-size: 1.2rem;
-  font-weight: 500;
-  margin: 0 10px;
+  background: #e0f7fa;
+  border: 3px solid #4dd0e1;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   min-height: 200px;
-  text-align: center;
-  min-width: 300px;
 }
+
+.water {
+  color: #00838f;
+  font-weight: bold;
+}
+
 .seat {
-  width: 28px;
-  height: 28px;
-  display: grid;
-  place-items: center;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 500;
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 0.8rem;
   cursor: pointer;
-  transition: all 0.2s ease;
-  flex-shrink: 0;
+  transition: 0.2s;
 }
+
+.seat:hover {
+  transform: scale(1.1);
+}
+
 .seat.available {
-  background-color: #212121;
-  color: white;
+  background: white;
+  border: 2px solid #2ecc71;
+  color: #2ecc71;
 }
-.seat.available:hover {
-  opacity: 0.8;
-}
+
 .seat.unavailable {
-  background-color: #d0d0d0;
-  color: #777;
-  border: 1px solid #bbb;
+  background: #e0e0e0;
+  border: 2px solid #ccc;
+  color: #999;
   cursor: not-allowed;
 }
-.seat.selected {
-  background-color: #3498db;
+
+.seat.is-selected {
+  background: #023e8a;
+  border: 2px solid #023e8a;
   color: white;
-  border: 1px solid #2980b9;
 }
 
-/* --- STYLE BARU & MODIFIKASI --- */
+/* --- BAGIAN KANAN (CART) --- */
+.sidebar {
+  background: white;
+  padding: 20px;
+  border-radius: 16px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+}
 
-/* Wrapper untuk daftar booking-info */
 .booking-list {
   display: flex;
   flex-direction: column;
-  gap: 16px; /* Jarak antar form booking */
-  margin-bottom: 16px; /* Jarak sebelum summary */
+  gap: 15px;
+  margin: 20px 0;
+  max-height: 60vh;
+  overflow-y: auto;
 }
 
-.booking-info {
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  padding: 16px;
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 16px;
-  background-color: #fafafa; /* Sedikit bedakan warna form */
+.booking-card {
+  border: 1px solid #eee;
+  border-radius: 10px;
+  overflow: hidden;
 }
 
-/* Header di dalam form booking (Judul + Tombol Hapus) */
-.booking-header {
+.card-header {
+  background: #f8f9fa;
+  padding: 10px 15px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  grid-column: 1 / -1; /* Lebar penuh */
-  margin-bottom: 4px;
-  padding-bottom: 8px;
   border-bottom: 1px solid #eee;
 }
-.booking-header h3 {
-  font-size: 1.1rem;
-  color: #333;
-}
-.remove-btn {
-  background: none;
-  border: 1px solid #e74c3c;
-  color: #e74c3c;
-  font-size: 12px;
-  font-weight: 600;
-  padding: 4px 8px;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.remove-btn:hover {
-  background: #e74c3c;
-  color: white;
+
+.seat-badge {
+  font-weight: 700;
+  color: #023e8a;
 }
 
-/* Tampilan kursi terpilih di dalam form */
-.linked-seat {
-  grid-column: 1 / -1;
-  background-color: #fff;
-  padding: 8px 12px;
-  border-radius: 6px;
-  border: 1px solid #ddd;
+.btn-del {
+  color: #ef4444;
+  border: none;
+  background: none;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.8rem;
 }
-.linked-seat label {
-  font-size: 12px;
-  color: #555;
+
+.card-body {
+  padding: 15px;
+}
+
+.form-group-sm {
+  margin-bottom: 10px;
+}
+
+.form-group-sm label {
+  font-size: 0.75rem;
+  color: #666;
+  font-weight: 600;
+  display: block;
   margin-bottom: 2px;
 }
-.seat-display {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #3498db;
-}
-.seat-display.not-selected {
-  color: #999;
-  font-weight: 500;
-  font-style: italic;
-}
 
-
-.info-item {
-  display: flex;
-  flex-direction: column;
-}
-@media (min-width: 401px) {
-  /* Atur ulang grid untuk form di mobile */
-  .booking-info {
-    grid-template-columns: 1fr 1fr;
-  }
-  .booking-info .linked-seat {
-    grid-column: 1 / -1;
-  }
-  /* Buat tanggal jadi lebar penuh lagi */
-  .booking-info .info-item:nth-of-type(3) {
-     grid-column: 1 / -1;
-  }
-}
-.info-item label {
-  font-size: 12px;
-  color: #555;
-  margin-bottom: 4px;
-}
-
-/* PERUBAHAN STYLE: Menambahkan 'select' agar stylenya sama */
-.info-item input,
-.info-item select {
-  font-size: 14px;
-  padding: 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+.form-group-sm input,
+.form-group-sm select {
   width: 100%;
-  background-color: #fff; /* Pastikan <select> punya background */
+  padding: 6px;
+  font-size: 0.9rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.price-calc {
+  text-align: right;
+  font-size: 0.9rem;
+  margin-top: 10px;
+  color: #555;
+}
+
+.error-text {
+  color: red;
+  font-size: 0.8rem;
+  margin-top: 5px;
 }
 
 .summary {
+  border-top: 2px solid #eee;
+  padding-top: 20px;
+}
+
+.total-row {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 800;
+  font-size: 1.2rem;
+  margin-bottom: 20px;
+}
+
+.total-val {
+  color: #023e8a;
+}
+
+.btn-checkout {
   width: 100%;
-}
-.add-person-btn {
-  background: none;
-  border: none;
-  color: #3498db;
-  font-weight: 600;
-  cursor: pointer;
-  text-align: right;
-  width: 100%;
-  padding: 16px 0 8px 0;
-  font-size: 14px;
-}
-.add-person-btn:disabled {
-  color: #999;
-  cursor: not-allowed;
-}
-.total-price {
-  text-align: center;
-  color: #555;
-  font-size: 1rem;
-  margin-bottom: 16px;
-}
-.total-price span {
-  display: block;
-  font-size: 2rem;
-  font-weight: 700;
-  color: #3498db;
-}
-.continue-btn {
-  width: 100%;
-  background-color: #0d1a4d;
+  padding: 14px;
+  background: #023e8a;
   color: white;
-  padding: 18px;
   border: none;
-  font-size: 1.1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 0.2s;
   border-radius: 8px;
-}
-.continue-btn:hover {
-  background-color: #1a2f8b;
-}
-
-/* Style untuk pesan error */
-.seat-error-message {
-  background-color: #e74c3c;
-  color: white;
-  padding: 12px 24px;
-  text-align: center;
-  font-weight: 500;
-  border-radius: 0; /* Lebar penuh di atas */
+  font-weight: bold;
+  cursor: pointer;
 }
 
+.btn-checkout:disabled {
+  background: #ccc;
+}
 
-/* =========================================== */
-/* STYLING DESKTOP (LANDSCAPE)          	      */
-/* =========================================== */
-@media (min-width: 992px) {
-  .booking-page {
-    display: flex;
-    flex-direction: row;
-    max-width: 1200px;
-    margin: 2rem auto;
-    border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-    overflow: hidden;
-    /* Penting untuk layout desktop: sidebar bisa scroll */
-    align-items: flex-start;
-  }
-  .main-content {
-    flex: 2;
-    padding: 24px;
-    border-right: 1px solid #eee;
-  }
-  .sidebar {
-    flex: 1;
-    padding: 24px;
-    background-color: #fdfdfd;
-    display: flex;
-    flex-direction: column;
-    
-    /* FIX: Buat sidebar bisa scroll jika formnya banyak */
-    max-height: 90vh; /* Sesuaikan dengan tinggi viewport */
-    overflow-y: auto;
-  }
+/* Legend */
+.legend {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+  margin-bottom: 20px;
+  font-size: 0.8rem;
+}
 
-  .seating-layout {
-    overflow-x: hidden;
-    padding: 24px 0 0 0;
-  }
-  .layout-inner-wrap {
-    min-width: 0;
-  }
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
 
-  /* Di desktop, kembalikan grid ke 1 kolom agar rapi */
-  .booking-info {
-    grid-template-columns: 1fr;
-  }
-  .booking-info .linked-seat {
-    grid-column: 1 / -1;
-  }
-  .booking-info .info-item:nth-of-type(3) {
-     grid-column: 1 / -1;
-  }
-
-  /* Buat summary menempel di bawah */
-  .summary {
-    margin-top: auto; /* Dorong ke bawah */
-    padding-top: 24px;
-    border-top: 1px solid #eee;
-    background: #fdfdfd; /* Pastikan ada background */
-    
-    /* Fix: Buat summary tetap di bawah */
-    position: sticky;
-    bottom: 0;
-  }
-  
-  .continue-btn {
-    border-radius: 8px;
-  }
-
-  .seat-error-message {
-    border-radius: 8px 8px 0 0;
-  }
+.box {
+  width: 14px;
+  height: 14px;
+  border-radius: 2px;
 }
 </style>
