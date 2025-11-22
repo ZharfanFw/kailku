@@ -23,6 +23,7 @@ import {
   faLightbulb,
   faCircleExclamation,
   faRightFromBracket,
+  faMapLocationDot,
 } from "@fortawesome/free-solid-svg-icons";
 
 import { faClock } from "@fortawesome/free-regular-svg-icons";
@@ -41,6 +42,8 @@ library.add(
   faLightbulb,
   faCircleExclamation,
   faRightFromBracket,
+  faClock,
+  faMapLocationDot,
 );
 
 const app = createApp(App);

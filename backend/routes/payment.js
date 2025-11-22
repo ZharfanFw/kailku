@@ -1,3 +1,5 @@
+// backend/routes/payment.js
+
 async function paymentRoutes(fastify, options) {
   fastify.post(
     "/confirm",
@@ -6,18 +8,26 @@ async function paymentRoutes(fastify, options) {
     },
     async (request, reply) => {
       const user_id = request.user.id;
-
-      const { booking_ids, order_ids } = request.body;
+      const { booking_ids, order_ids } = request.body; // Ambil kedua ID
 
       let connection;
       try {
         connection = await fastify.mysql.getConnection();
         await connection.beginTransaction();
 
+        // 1. UPDATE BOOKINGS (Ini sudah ada)
         if (booking_ids && booking_ids.length > 0) {
           await connection.query(
             `UPDATE bookings SET status = 'paid' WHERE user_id = ? AND id IN (?)`,
             [user_id, booking_ids],
+          );
+        }
+
+        // 2. UPDATE ORDERS (INI YANG HILANG!) -> TAMBAHKAN INI
+        if (order_ids && order_ids.length > 0) {
+          await connection.query(
+            `UPDATE orders SET status = 'paid' WHERE user_id = ? AND id IN (?)`,
+            [user_id, order_ids],
           );
         }
 

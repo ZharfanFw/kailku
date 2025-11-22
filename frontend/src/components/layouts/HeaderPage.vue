@@ -10,8 +10,8 @@
       <div class="nav-middle">
         <router-link to="/">Beranda</router-link>
         <router-link to="/memancing-section">Tempat Pemancingan</router-link>
-        <a href="#tips-section">Tips & Trick</a>
-        <a href="#lomba-section">Lomba</a>
+        <router-link to="/#tips-section">Tips & Trick</router-link>
+        <router-link to="/#lomba-section">Lomba</router-link>
       </div>
 
       <div class="nav-right">
