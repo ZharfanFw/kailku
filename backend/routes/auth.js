@@ -16,7 +16,7 @@ async function authRoutes(fastify, options) {
   // Deskripsi: Middleware global untuk memverifikasi token JWT pada header request.
   // Fungsi ini dapat digunakan di rute manapun dengan opsi 'preHandler'.
   // ==================================================
-  fastify.decorate("authenticate", async function (request, reply) {
+  fastify.decorate("authenticate", async function(request, reply) {
     try {
       await request.jwtVerify();
     } catch (err) {
@@ -51,7 +51,7 @@ async function authRoutes(fastify, options) {
       // Eksekusi Query Insert: Menyimpan data pengguna baru ke database
       const [result] = await connection.query(
         "INSERT INTO users (username, first_name, last_name, email, password_hash) VALUES (?, ?, ?, ?, ?)",
-        [username, first_name, last_name, email, password_hash]
+        [username, first_name, last_name, email, password_hash],
       );
 
       connection.release();
@@ -101,7 +101,7 @@ async function authRoutes(fastify, options) {
       // Mencari pengguna berdasarkan email
       const [rows] = await connection.query(
         "SELECT * FROM users WHERE email = ?",
-        [email]
+        [email],
       );
 
       connection.release();
@@ -127,7 +127,7 @@ async function authRoutes(fastify, options) {
           username: user.username,
           email: user.email,
         },
-        { expiresIn: "1h" }
+        { expiresIn: "1h" },
       );
 
       // Mengirimkan token ke klien
@@ -151,34 +151,31 @@ async function authRoutes(fastify, options) {
       preHandler: [fastify.authenticate],
     },
     async (request, reply) => {
+      const user_id = request.user.id;
+
       let connection;
       try {
-        // 1. Ambil ID user dari Token JWT (request.user)
-        const userId = request.user.id;
-
         connection = await fastify.mysql.getConnection();
 
-        // 2. Query ke database untuk ambil data lengkap berdasarkan ID
+        // GUNAKAN 'full_name' SESUAI DATABASE
         const [rows] = await connection.query(
-          "SELECT id, username, first_name, last_name, email, phone, address, avatar_url FROM users WHERE id = ?",
-          [userId]
+          "SELECT id, username, full_name, email, phone, address, avatar_url FROM users WHERE id = ?",
+          [user_id],
         );
 
         connection.release();
 
-        // 3. Jika user tidak ditemukan di DB (kasus langka tapi mungkin terjadi jika user dihapus)
         if (rows.length === 0) {
           return reply.status(404).send({ message: "User tidak ditemukan" });
         }
 
-        // 4. Kembalikan data baris pertama dari database
         return rows[0];
       } catch (err) {
         if (connection) connection.release();
         fastify.log.error(err);
-        return reply.status(500).send({ message: "Gagal mengambil profil" });
+        reply.status(500).send(err);
       }
-    }
+    },
   );
 
   // ==================================================
@@ -280,7 +277,7 @@ async function authRoutes(fastify, options) {
         fastify.log.error(err);
         reply.status(500).send({ message: "Terjadi error pada server" });
       }
-    }
+    },
   );
 
   fastify.post("/forgot-password", async (request, reply) => {
@@ -292,7 +289,7 @@ async function authRoutes(fastify, options) {
 
       const [rows] = await connection.query(
         "SELECT * FROM users WHERE email = ?",
-        [email]
+        [email],
       );
 
       if (rows.length === 0) {
@@ -306,13 +303,13 @@ async function authRoutes(fastify, options) {
 
       await connection.query(
         "UPDATE users SET reset_token = ?, reset_expires = ? WHERE email = ?",
-        [token, expireDate, email]
+        [token, expireDate, email],
       );
 
       connection.release();
 
       console.log(
-        `Link Reset: http://localhost:5173/reset-password?token=${token}`
+        `Link Reset: http://localhost:5173/reset-password?token=${token}`,
       );
       return reply.send({
         message:
@@ -335,7 +332,7 @@ async function authRoutes(fastify, options) {
 
       const [rows] = await connection.query(
         "SELECT * FROM users WHERE reset_token = ? AND reset_expires > NOW()",
-        [token]
+        [token],
       );
 
       if (rows.length === 0) {
@@ -350,7 +347,7 @@ async function authRoutes(fastify, options) {
 
       await connection.query(
         "UPDATE users SET password_hash = ?, reset_token = NULL, reset_expires = NULL WHERE id = ?",
-        [password_hash, rows[0].id]
+        [password_hash, rows[0].id],
       );
 
       connection.release();

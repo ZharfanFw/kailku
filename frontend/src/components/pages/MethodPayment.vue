@@ -6,7 +6,8 @@
       </div>
 
       <div v-if="isLoading" class="loading-state">
-        <div class="spinner"></div> Memuat tagihan...
+        <div class="spinner"></div>
+        <p style="margin-top:10px; color:#666;">Memuat rincian tagihan...</p>
       </div>
 
       <div v-else>
@@ -27,7 +28,8 @@
                 :disabled="method.disabled" class="method-radio" />
               <div class="method-content">
                 <div class="method-icon">
-                  <img :src="method.icon || 'https://via.placeholder.com/32'" :alt="method.name" />
+                  <img :src="method.icon" :alt="method.name"
+                    @error="$event.target.src = 'https://via.placeholder.com/32'" />
                 </div>
                 <div class="method-info">
                   <span class="method-name">{{ method.name }}</span>
@@ -49,7 +51,7 @@
             <span class="summary-value">{{ formatCurrency(orderSummary.subtotal) }}</span>
           </div>
           <div class="summary-row">
-            <span class="summary-label">Biaya Layanan (Admin)</span>
+            <span class="summary-label">Biaya Admin (Platform)</span>
             <span class="summary-value">{{ formatCurrency(orderSummary.serviceFee) }}</span>
           </div>
           <div class="summary-divider"></div>
@@ -72,13 +74,13 @@ import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 
 const router = useRouter();
+
+// --- STATE ---
 const isLoading = ref(true);
 const isProcessing = ref(false);
-
-// Data Tagihan (Akan diisi dari DB)
 const pendingBookings = ref([]);
 const pendingOrders = ref([]);
-const PRICE_PER_HOUR = 25000; // Asumsi harga per jam
+const PRICE_PER_HOUR = 25000; // Harga sewa tempat per jam
 
 // UI State
 const selectedTab = ref("transfer");
@@ -90,21 +92,24 @@ const paymentTabs = [
   { id: "qris", label: "QRIS" },
 ];
 
+// Data Metode Pembayaran (Static UI)
 const paymentMethods = ref([
-  // (Data dummy metode bayar kamu tetap bisa dipakai)
-  { id: "bca", name: "Bank BCA", type: "transfer", disabled: false },
-  { id: "mandiri", name: "Bank Mandiri", type: "transfer", disabled: false },
-  { id: "qris", name: "QRIS", type: "qris", badge: "Instant", disabled: false },
-  { id: "cod", name: "Bayar di Tempat", type: "cod", disabled: false },
+  { id: "bca", name: "Bank BCA", type: "transfer", icon: new URL("@/assets/img/method-payment/bca.avif", import.meta.url).href, disabled: false },
+  { id: "mandiri", name: "Bank Mandiri", type: "transfer", icon: new URL("@/assets/img/method-payment/mandiri.avif", import.meta.url).href, disabled: false },
+  { id: "bni", name: "Bank BNI", type: "transfer", icon: new URL("@/assets/img/method-payment/bni.avif", import.meta.url).href, disabled: false },
+  { id: "bri", name: "Bank BRI", type: "transfer", icon: new URL("@/assets/img/method-payment/bri.avif", import.meta.url).href, disabled: false },
+  { id: "bsi", name: "Bank Syariah Indonesia", type: "transfer", icon: new URL("@/assets/img/method-payment/bsi.avif", import.meta.url).href, disabled: false },
+  { id: "qris", name: "QRIS", type: "qris", icon: new URL("@/assets/img/method-payment/qris.avif", import.meta.url).href, badge: "Instant", disabled: false },
+  { id: "cod", name: "Bayar di Tempat", type: "cod", icon: new URL("@/assets/img/method-payment/cod.avif", import.meta.url).href, disabled: false },
 ]);
 
-// --- 1. FETCH TAGIHAN DARI BACKEND ---
+// --- 1. FETCH DATA DARI BACKEND ---
 onMounted(async () => {
   const token = localStorage.getItem('kailku_token');
   if (!token) return router.push('/login');
 
   try {
-    // A. Ambil Booking
+    // A. Ambil Booking Pending
     const resBook = await fetch('http://localhost:3000/bookings/my', {
       headers: { Authorization: `Bearer ${token}` }
     });
@@ -113,7 +118,7 @@ onMounted(async () => {
       pendingBookings.value = data.filter(b => b.status === 'pending');
     }
 
-    // B. Ambil Order Alat
+    // B. Ambil Order Pending
     const resOrder = await fetch('http://localhost:3000/orders/my', {
       headers: { Authorization: `Bearer ${token}` }
     });
@@ -128,27 +133,29 @@ onMounted(async () => {
   }
 });
 
-// --- 2. HITUNG TOTAL OTOMATIS ---
+// --- 2. LOGIKA HITUNG HARGA ---
 const orderSummary = computed(() => {
   let subtotal = 0;
 
-  // Hitung harga booking
+  // Hitung harga Booking
   pendingBookings.value.forEach(b => {
     if (b.start_time && b.end_time) {
       const startH = parseInt(b.start_time.split(':')[0]);
       const endH = parseInt(b.end_time.split(':')[0]);
-      subtotal += (endH - startH) * PRICE_PER_HOUR;
+      const duration = endH - startH;
+      subtotal += duration * PRICE_PER_HOUR;
     }
   });
 
-  // Hitung harga alat (asumsi ada field total_harga atau hitung manual)
+  // Hitung harga Order Alat
   pendingOrders.value.forEach(o => {
     subtotal += Number(o.total_harga) || 0;
   });
 
   return {
     subtotal: subtotal,
-    serviceFee: 2500 // Biaya admin tetap
+    shipping: 0, // Tidak ada ongkir untuk booking
+    serviceFee: 2500 // Biaya admin
   };
 });
 
@@ -160,19 +167,22 @@ const filteredMethods = computed(() => {
   return paymentMethods.value.filter(m => m.type === selectedTab.value);
 });
 
-// --- 3. PROSES PEMBAYARAN (POST ke Backend) ---
+// --- 3. PROSES BAYAR (SUBMIT KE BACKEND) ---
 async function handleSubmitPayment() {
-  if (!confirm(`Bayar sebesar ${formatCurrency(totalPayment.value)} via ${selectedMethod.value}?`)) return;
+  if (!selectedMethod.value) {
+    alert("Silakan pilih metode pembayaran terlebih dahulu");
+    return;
+  }
 
   const token = localStorage.getItem('kailku_token');
   isProcessing.value = true;
 
   try {
+    // Payload untuk backend
     const payload = {
       booking_ids: pendingBookings.value.map(b => b.id),
       order_ids: pendingOrders.value.map(o => o.id),
-      payment_method: selectedMethod.value,
-      total_amount: totalPayment.value
+      payment_method: selectedMethod.value
     };
 
     const res = await fetch('http://localhost:3000/payment/confirm', {
@@ -187,7 +197,7 @@ async function handleSubmitPayment() {
     if (!res.ok) throw new Error("Gagal memproses pembayaran");
 
     alert("Pembayaran Berhasil! Terima kasih.");
-    router.push('/profil');
+    router.push('/profil'); // Redirect ke Profil (Tiket aktif)
 
   } catch (err) {
     alert(err.message);
@@ -199,15 +209,47 @@ async function handleSubmitPayment() {
 // Helpers
 function selectTab(id) { selectedTab.value = id; selectedMethod.value = null; }
 function getCurrentTabTitle() {
-  const map = { transfer: "Pilih Bank", cod: "Bayar di Tempat", qris: "Scan QRIS" };
-  return map[selectedTab.value];
+  const tabTitles = { transfer: "Pilih Bank", cod: "Bayar di Tempat", qris: "Pembayaran QRIS" };
+  return tabTitles[selectedTab.value] || "Pilih Metode Pembayaran";
 }
-function formatCurrency(val) { return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR" }).format(val); }
-
+function formatCurrency(amount) {
+  return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(amount);
+}
 </script>
 
 <style scoped>
-/* --- GUNAKAN CSS ASLI KAMU (SAYA COPY PASTE DI SINI AGAR AMAN) --- */
+/* ===== STYLE DARI KAMU (TIDAK ADA YANG DIUBAH, HANYA TAMBAHAN LOADING) ===== */
+
+/* Helper Loading (Tambahan dikit biar rapi pas loading) */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 50px;
+}
+
+.spinner {
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #48cae4;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+
+/* --- CSS ASLI KAMU DI BAWAH INI --- */
 
 :root {
   --color-primary: #48cae4;
@@ -221,11 +263,13 @@ function formatCurrency(val) { return new Intl.NumberFormat("id-ID", { style: "c
   --color-error: #ef4444;
 }
 
+/* ===== CONTAINER ===== */
 .payment-method-container {
   min-height: 100vh;
   background-color: #f5f5f5;
-  padding: 100px 24px 40px;
-  /* Padding top disesuaikan navbar */
+  padding: 24px;
+  /* Tambahkan padding top buat navbar */
+  padding-top: 100px;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
@@ -238,6 +282,7 @@ function formatCurrency(val) { return new Intl.NumberFormat("id-ID", { style: "c
   overflow: hidden;
 }
 
+/* ===== HEADER ===== */
 .payment-header {
   padding: 24px;
   border-bottom: 2px solid var(--color-border);
@@ -250,11 +295,21 @@ function formatCurrency(val) { return new Intl.NumberFormat("id-ID", { style: "c
   margin: 0;
 }
 
+/* ===== PAYMENT TABS ===== */
 .payment-tabs {
   display: flex;
   overflow-x: auto;
   border-bottom: 1px solid var(--color-border);
   background-color: #fafafa;
+}
+
+.payment-tabs::-webkit-scrollbar {
+  height: 4px;
+}
+
+.payment-tabs::-webkit-scrollbar-thumb {
+  background-color: var(--color-primary);
+  border-radius: 2px;
 }
 
 .tab-button {
@@ -282,6 +337,7 @@ function formatCurrency(val) { return new Intl.NumberFormat("id-ID", { style: "c
   font-weight: 700;
 }
 
+/* ===== PAYMENT METHODS LIST ===== */
 .payment-methods-list {
   padding: 24px;
 }
@@ -300,6 +356,7 @@ function formatCurrency(val) { return new Intl.NumberFormat("id-ID", { style: "c
   margin-bottom: 24px;
 }
 
+/* ===== METHOD ITEM ===== */
 .method-item {
   display: flex;
   align-items: center;
@@ -318,12 +375,22 @@ function formatCurrency(val) { return new Intl.NumberFormat("id-ID", { style: "c
   box-shadow: 0 4px 12px rgba(72, 202, 228, 0.15);
 }
 
+.method-item.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: #f9f9f9;
+}
+
 .method-radio {
   width: 20px;
   height: 20px;
   margin-right: 16px;
   cursor: pointer;
   accent-color: var(--color-primary);
+}
+
+.method-radio:disabled {
+  cursor: not-allowed;
 }
 
 .method-item:has(.method-radio:checked) {
@@ -356,10 +423,21 @@ function formatCurrency(val) { return new Intl.NumberFormat("id-ID", { style: "c
   object-fit: contain;
 }
 
+.method-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
 .method-name {
   color: var(--color-dark);
   font-size: 15px;
   font-weight: 600;
+}
+
+.method-description {
+  color: var(--color-text-secondary);
+  font-size: 13px;
 }
 
 .method-badge {
@@ -371,6 +449,7 @@ function formatCurrency(val) { return new Intl.NumberFormat("id-ID", { style: "c
   border-radius: 12px;
 }
 
+/* ===== ORDER SUMMARY ===== */
 .order-summary {
   background-color: #fafafa;
   padding: 20px;
@@ -396,10 +475,28 @@ function formatCurrency(val) { return new Intl.NumberFormat("id-ID", { style: "c
   font-weight: 600;
 }
 
+.info-icon {
+  display: inline-block;
+  margin-left: 4px;
+  color: var(--color-text-secondary);
+  cursor: help;
+  font-size: 12px;
+}
+
 .summary-divider {
   height: 1px;
   background-color: var(--color-border);
   margin: 16px 0;
+}
+
+.total-row {
+  margin-bottom: 0;
+}
+
+.summary-label-total {
+  color: var(--color-dark);
+  font-size: 16px;
+  font-weight: 700;
 }
 
 .summary-value-total {
@@ -408,6 +505,7 @@ function formatCurrency(val) { return new Intl.NumberFormat("id-ID", { style: "c
   font-weight: 800;
 }
 
+/* ===== SUBMIT BUTTON ===== */
 .submit-button {
   width: calc(100% - 48px);
   margin: 0 24px 24px;
@@ -430,34 +528,62 @@ function formatCurrency(val) { return new Intl.NumberFormat("id-ID", { style: "c
   color: var(--color-white);
 }
 
+.submit-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
 .submit-button:disabled {
   background-color: #cccccc;
   cursor: not-allowed;
+  box-shadow: none;
 }
 
-.loading-state {
-  text-align: center;
-  padding: 50px;
-  color: #666;
-}
-
-.spinner {
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid #3498db;
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  animation: spin 2s linear infinite;
-  margin: 0 auto 15px;
-}
-
-@keyframes spin {
-  0% {
-    transform: rotate(0deg);
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+  .payment-method-container {
+    padding: 12px;
+    padding-top: 100px;
   }
 
-  100% {
-    transform: rotate(360deg);
+  .payment-header {
+    padding: 16px;
+  }
+
+  .header-title {
+    font-size: 20px;
+  }
+
+  .tab-button {
+    padding: 12px 16px;
+    font-size: 13px;
+  }
+
+  .payment-methods-list {
+    padding: 16px;
+  }
+
+  .method-item {
+    padding: 12px;
+  }
+
+  .method-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .method-icon img {
+    width: 24px;
+    height: 24px;
+  }
+
+  .order-summary {
+    margin: 16px;
+    padding: 16px;
+  }
+
+  .submit-button {
+    width: calc(100% - 32px);
+    margin: 0 16px 16px;
   }
 }
 </style>

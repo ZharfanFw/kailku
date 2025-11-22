@@ -11,69 +11,91 @@ async function orderRoutes(fastify, options) {
   // URL Akses: http://localhost:3000/orders/
   // Deskripsi: Membuat record di tabel 'orders' dan 'order_details' dalam satu transaksi atomik.
   // ==================================================
+  // ==================================================
+  // 1. Endpoint: Buat Pesanan Baru (Checkout)
+  // ==================================================
   fastify.post(
     "/",
     {
       preHandler: [fastify.authenticate],
     },
     async (request, reply) => {
-      const { items } = request.body; // Array barang: [{id: 1, tipe: 'beli', jumlah: 2}, ...]
+      const { items } = request.body; // [{id: 1, tipe: 'beli', jumlah: 2}, ...]
       const user_id = request.user.id;
 
-      // Validasi Input
       if (!items || items.length === 0) {
-        return reply
-          .status(400)
-          .send({ message: "Daftar barang (items) tidak boleh kosong" });
+        return reply.status(400).send({ message: "Keranjang kosong" });
       }
 
       let connection;
       try {
         connection = await fastify.mysql.getConnection();
-
-        // MEMULAI TRANSAKSI DATABASE
-        // Penting: Memastikan data konsisten. Jika insert detail gagal, order utama dibatalkan.
         await connection.beginTransaction();
 
-        // 1. Insert ke tabel 'orders' (Header Struk)
+        // 1. Buat "Kepala Struk" (Order) dulu (Total masih 0)
         const [orderResults] = await connection.query(
-          "INSERT INTO orders (user_id, status) VALUES (?, ?)",
+          "INSERT INTO orders (user_id, status, total_harga) VALUES (?, ?, 0)",
           [user_id, "pending"],
         );
 
-        const order_id = orderResults.insertId; // ID order yang baru dibuat
+        const order_id = orderResults.insertId;
+        let calculatedTotal = 0; // Kita hitung manual di sini
 
-        // 2. Insert ke tabel 'order_details' (Isi Barang)
+        // 2. Loop item untuk simpan detail & hitung harga
         for (const item of items) {
-          await connection.query(
-            "INSERT INTO order_details (order_id, alat_id, tipe, jumlah) VALUES (?, ?, ?, ?)",
-            [order_id, item.id, item.tipe, item.jumlah],
+          // A. Ambil harga asli dari database (JANGAN percaya harga dari frontend)
+          const [tools] = await connection.query(
+            "SELECT * FROM alat_pancing WHERE id = ?",
+            [item.id],
           );
-          // TODO: Di masa depan, tambahkan logika pengurangan stok di sini
+
+          if (tools.length === 0) continue; // Skip kalau barang ga ada
+          const tool = tools[0];
+
+          // B. Tentukan harga (Sewa atau Beli?)
+          let hargaSatuan = 0;
+          if (item.tipe === "beli") {
+            hargaSatuan = Number(tool.harga_beli);
+          } else if (item.tipe === "sewa") {
+            hargaSatuan = Number(tool.harga_sewa);
+          }
+
+          // C. Hitung Subtotal item ini
+          const subtotalItem = hargaSatuan * item.jumlah;
+          calculatedTotal += subtotalItem;
+
+          // D. Masukkan ke order_details
+          await connection.query(
+            "INSERT INTO order_details (order_id, alat_id, tipe, jumlah, harga_saat_transaksi) VALUES (?, ?, ?, ?, ?)",
+            [order_id, item.id, item.tipe, item.jumlah, hargaSatuan],
+          );
         }
 
-        // KOMIT TRANSAKSI
-        // Simpan semua perubahan secara permanen jika tidak ada error
+        // 3. UPDATE Total Harga di tabel Orders
+        // (Ini langkah yang sebelumnya kurang!)
+        await connection.query(
+          "UPDATE orders SET total_harga = ? WHERE id = ?",
+          [calculatedTotal, order_id],
+        );
+
         await connection.commit();
         connection.release();
 
-        return reply
-          .status(201)
-          .send({ message: "Order berhasil dibuat", order_id: order_id });
+        return reply.status(201).send({
+          message: "Order berhasil dibuat",
+          order_id: order_id,
+          total: calculatedTotal,
+        });
       } catch (err) {
-        // ROLLBACK TRANSAKSI
-        // Batalkan semua perubahan jika terjadi error di tengah jalan
         if (connection) {
           await connection.rollback();
           connection.release();
         }
-
         fastify.log.error(err);
-        reply.status(500).send({ message: "Terjadi kesalahan pada server" });
+        reply.status(500).send({ message: "Gagal membuat order" });
       }
     },
   );
-
   // ==================================================
   // 2. Endpoint: Riwayat Order Saya (List)
   // Method: GET
