@@ -14,6 +14,7 @@ import Kelompok from "@/components/pages/Kelompok.vue";
 import UserProfil from "@/components/pages/UserProfil.vue";
 import ForgotPassword from "../components/pages/ForgotPassword.vue"; // Nanti kita buat
 import ResetPassword from "../components/pages/ResetPassword.vue"; // Nanti kita buat
+import PaymentExecution from "../components/pages/PaymentExecution.vue"; // Nanti kita buat
 
 const routes = [
   {
@@ -84,6 +85,12 @@ const routes = [
     component: ForgotPassword,
   },
   { path: "/reset-password", name: "ResetPassword", component: ResetPassword },
+  {
+    path: "/payment-execution/:id",
+    name: "PaymentExecution",
+    component: PaymentExecution,
+    meta: { requireAuth: true },
+  },
 ];
 
 const router = createRouter({

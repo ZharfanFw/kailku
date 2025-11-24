@@ -81,6 +81,8 @@ fastify.register(require("./routes/reviews"), { prefix: "/reviews" });
 // Menangani Confirmation Payment -> URL: /payment/...
 fastify.register(require("./routes/payment"), { prefix: "/payment" });
 
+fastify.register(require("./routes/content"), { prefix: "/content" });
+
 // ==================================================
 // 6. JALANKAN SERVER
 // ==================================================

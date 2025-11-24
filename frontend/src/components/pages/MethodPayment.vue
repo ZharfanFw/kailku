@@ -7,7 +7,7 @@
 
       <div v-if="isLoading" class="loading-state">
         <div class="spinner"></div>
-        <p style="margin-top:10px; color:#666;">Memuat rincian tagihan...</p>
+        <p style="margin-top: 10px; color: #666">Menghitung total tagihan...</p>
       </div>
 
       <div v-else>
@@ -29,7 +29,7 @@
               <div class="method-content">
                 <div class="method-icon">
                   <img :src="method.icon" :alt="method.name"
-                    @error="$event.target.src = 'https://via.placeholder.com/32'" />
+                    @error="$event.target.src = 'https://via.placeholder.com/48?text=Bank'" />
                 </div>
                 <div class="method-info">
                   <span class="method-name">{{ method.name }}</span>
@@ -51,10 +51,12 @@
             <span class="summary-value">{{ formatCurrency(orderSummary.subtotal) }}</span>
           </div>
           <div class="summary-row">
-            <span class="summary-label">Biaya Admin (Platform)</span>
+            <span class="summary-label">Biaya Layanan (Admin)</span>
             <span class="summary-value">{{ formatCurrency(orderSummary.serviceFee) }}</span>
           </div>
+
           <div class="summary-divider"></div>
+
           <div class="summary-row total-row">
             <span class="summary-label-total">Total Pembayaran</span>
             <span class="summary-value-total">{{ formatCurrency(totalPayment) }}</span>
@@ -62,7 +64,7 @@
         </div>
 
         <button class="submit-button" :disabled="!selectedMethod || isProcessing" @click="handleSubmitPayment">
-          {{ isProcessing ? 'Memproses...' : 'Bayar Sekarang' }}
+          {{ isProcessing ? 'Memproses...' : 'Buat Pesanan' }}
         </button>
       </div>
     </div>
@@ -75,12 +77,14 @@ import { useRouter } from "vue-router";
 
 const router = useRouter();
 
-// --- STATE ---
+// --- KONFIGURASI & STATE ---
+const PRICE_PER_HOUR = 25000;
+const SERVICE_FEE = 2500;
+
 const isLoading = ref(true);
 const isProcessing = ref(false);
 const pendingBookings = ref([]);
 const pendingOrders = ref([]);
-const PRICE_PER_HOUR = 25000; // Harga sewa tempat per jam
 
 // UI State
 const selectedTab = ref("transfer");
@@ -92,15 +96,24 @@ const paymentTabs = [
   { id: "qris", label: "QRIS" },
 ];
 
-// Data Metode Pembayaran (Static UI)
+// --- DATA METODE PEMBAYARAN (FULL LIST KAMU) ---
 const paymentMethods = ref([
+  // Transfer Bank
+  { id: "seabank", name: "SeaBank", type: "transfer", icon: new URL("@/assets/img/method-payment/seabank.avif", import.meta.url).href, disabled: false },
   { id: "bca", name: "Bank BCA", type: "transfer", icon: new URL("@/assets/img/method-payment/bca.avif", import.meta.url).href, disabled: false },
   { id: "mandiri", name: "Bank Mandiri", type: "transfer", icon: new URL("@/assets/img/method-payment/mandiri.avif", import.meta.url).href, disabled: false },
   { id: "bni", name: "Bank BNI", type: "transfer", icon: new URL("@/assets/img/method-payment/bni.avif", import.meta.url).href, disabled: false },
   { id: "bri", name: "Bank BRI", type: "transfer", icon: new URL("@/assets/img/method-payment/bri.avif", import.meta.url).href, disabled: false },
-  { id: "bsi", name: "Bank Syariah Indonesia", type: "transfer", icon: new URL("@/assets/img/method-payment/bsi.avif", import.meta.url).href, disabled: false },
-  { id: "qris", name: "QRIS", type: "qris", icon: new URL("@/assets/img/method-payment/qris.avif", import.meta.url).href, badge: "Instant", disabled: false },
-  { id: "cod", name: "Bayar di Tempat", type: "cod", icon: new URL("@/assets/img/method-payment/cod.avif", import.meta.url).href, disabled: false },
+  { id: "bsi", name: "Bank Syariah Indonesia (BSI)", type: "transfer", icon: new URL("@/assets/img/method-payment/bsi.avif", import.meta.url).href, disabled: false },
+  { id: "permata", name: "Bank Permata", type: "transfer", icon: new URL("@/assets/img/method-payment/permata.avif", import.meta.url).href, disabled: false },
+  { id: "cimb", name: "Bank CIMB Niaga", type: "transfer", icon: new URL("@/assets/img/method-payment/cimb.avif", import.meta.url).href, disabled: false },
+  { id: "other-bank", name: "Bank lainnya", type: "transfer", description: "Menerima transfer dari semua bank", icon: new URL("@/assets/img/method-payment/banklainnya.avif", import.meta.url).href, disabled: false },
+
+  // COD
+  { id: "cod-jne", name: "Bayar di Tempat (COD)", type: "cod", description: "Bayar saat barang diterima", icon: new URL("@/assets/img/method-payment/cod.avif", import.meta.url).href, disabled: false },
+
+  // QRIS
+  { id: "qris", name: "QRIS", type: "qris", description: "Scan QR untuk pembayaran instant", icon: new URL("@/assets/img/method-payment/qris.avif", import.meta.url).href, badge: "Instant", disabled: false },
 ]);
 
 // --- 1. FETCH DATA DARI BACKEND ---
@@ -118,7 +131,7 @@ onMounted(async () => {
       pendingBookings.value = data.filter(b => b.status === 'pending');
     }
 
-    // B. Ambil Order Pending
+    // B. Ambil Order Alat Pending
     const resOrder = await fetch('http://localhost:3000/orders/my', {
       headers: { Authorization: `Bearer ${token}` }
     });
@@ -133,11 +146,11 @@ onMounted(async () => {
   }
 });
 
-// --- 2. LOGIKA HITUNG HARGA ---
+// --- 2. HITUNG HARGA REALTIME ---
 const orderSummary = computed(() => {
   let subtotal = 0;
 
-  // Hitung harga Booking
+  // Hitung harga Booking Tempat (Durasi * Harga)
   pendingBookings.value.forEach(b => {
     if (b.start_time && b.end_time) {
       const startH = parseInt(b.start_time.split(':')[0]);
@@ -154,8 +167,8 @@ const orderSummary = computed(() => {
 
   return {
     subtotal: subtotal,
-    shipping: 0, // Tidak ada ongkir untuk booking
-    serviceFee: 2500 // Biaya admin
+    shipping: 0,
+    serviceFee: SERVICE_FEE
   };
 });
 
@@ -163,14 +176,24 @@ const totalPayment = computed(() => {
   return orderSummary.value.subtotal + orderSummary.value.serviceFee;
 });
 
+const pendingCount = computed(() => pendingBookings.value.length + pendingOrders.value.length);
+
 const filteredMethods = computed(() => {
   return paymentMethods.value.filter(m => m.type === selectedTab.value);
 });
 
-// --- 3. PROSES BAYAR (SUBMIT KE BACKEND) ---
+
+// --- 3. PROSES BUAT TAGIHAN (CREATE PAYMENT) ---
 async function handleSubmitPayment() {
   if (!selectedMethod.value) {
     alert("Silakan pilih metode pembayaran terlebih dahulu");
+    return;
+  }
+
+  // Cek jika tagihan kosong
+  if (totalPayment.value <= 0 && pendingCount.value === 0) {
+    alert("Tidak ada tagihan yang perlu dibayar.");
+    router.push('/profil');
     return;
   }
 
@@ -178,14 +201,15 @@ async function handleSubmitPayment() {
   isProcessing.value = true;
 
   try {
-    // Payload untuk backend
     const payload = {
       booking_ids: pendingBookings.value.map(b => b.id),
       order_ids: pendingOrders.value.map(o => o.id),
-      payment_method: selectedMethod.value
+      payment_method: selectedMethod.value,
+      total_amount: totalPayment.value
     };
 
-    const res = await fetch('http://localhost:3000/payment/confirm', {
+    // Panggil Backend: Buat Payment (status: menunggu_verifikasi)
+    const res = await fetch('http://localhost:3000/payment/create', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -194,10 +218,12 @@ async function handleSubmitPayment() {
       body: JSON.stringify(payload)
     });
 
-    if (!res.ok) throw new Error("Gagal memproses pembayaran");
+    if (!res.ok) throw new Error("Gagal membuat tagihan pembayaran");
 
-    alert("Pembayaran Berhasil! Terima kasih.");
-    router.push('/profil'); // Redirect ke Profil (Tiket aktif)
+    const data = await res.json();
+
+    // Redirect ke halaman eksekusi (QR Code / No Rekening)
+    router.push(`/payment-execution/${data.payment_id}`);
 
   } catch (err) {
     alert(err.message);
@@ -209,8 +235,8 @@ async function handleSubmitPayment() {
 // Helpers
 function selectTab(id) { selectedTab.value = id; selectedMethod.value = null; }
 function getCurrentTabTitle() {
-  const tabTitles = { transfer: "Pilih Bank", cod: "Bayar di Tempat", qris: "Pembayaran QRIS" };
-  return tabTitles[selectedTab.value] || "Pilih Metode Pembayaran";
+  const map = { transfer: "Pilih Bank", cod: "Bayar di Tempat", qris: "Scan QRIS" };
+  return map[selectedTab.value];
 }
 function formatCurrency(amount) {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(amount);
@@ -218,9 +244,7 @@ function formatCurrency(amount) {
 </script>
 
 <style scoped>
-/* ===== STYLE DARI KAMU (TIDAK ADA YANG DIUBAH, HANYA TAMBAHAN LOADING) ===== */
-
-/* Helper Loading (Tambahan dikit biar rapi pas loading) */
+/* Loading State */
 .loading-state {
   display: flex;
   flex-direction: column;
@@ -249,8 +273,7 @@ function formatCurrency(amount) {
 }
 
 
-/* --- CSS ASLI KAMU DI BAWAH INI --- */
-
+/* --- CSS ASLI KAMU --- */
 :root {
   --color-primary: #48cae4;
   --color-secondary: #ffa200;
@@ -263,12 +286,10 @@ function formatCurrency(amount) {
   --color-error: #ef4444;
 }
 
-/* ===== CONTAINER ===== */
 .payment-method-container {
   min-height: 100vh;
   background-color: #f5f5f5;
   padding: 24px;
-  /* Tambahkan padding top buat navbar */
   padding-top: 100px;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
@@ -282,7 +303,6 @@ function formatCurrency(amount) {
   overflow: hidden;
 }
 
-/* ===== HEADER ===== */
 .payment-header {
   padding: 24px;
   border-bottom: 2px solid var(--color-border);
@@ -295,7 +315,6 @@ function formatCurrency(amount) {
   margin: 0;
 }
 
-/* ===== PAYMENT TABS ===== */
 .payment-tabs {
   display: flex;
   overflow-x: auto;
@@ -337,7 +356,6 @@ function formatCurrency(amount) {
   font-weight: 700;
 }
 
-/* ===== PAYMENT METHODS LIST ===== */
 .payment-methods-list {
   padding: 24px;
 }
@@ -356,7 +374,6 @@ function formatCurrency(amount) {
   margin-bottom: 24px;
 }
 
-/* ===== METHOD ITEM ===== */
 .method-item {
   display: flex;
   align-items: center;
@@ -449,7 +466,6 @@ function formatCurrency(amount) {
   border-radius: 12px;
 }
 
-/* ===== ORDER SUMMARY ===== */
 .order-summary {
   background-color: #fafafa;
   padding: 20px;
@@ -475,14 +491,6 @@ function formatCurrency(amount) {
   font-weight: 600;
 }
 
-.info-icon {
-  display: inline-block;
-  margin-left: 4px;
-  color: var(--color-text-secondary);
-  cursor: help;
-  font-size: 12px;
-}
-
 .summary-divider {
   height: 1px;
   background-color: var(--color-border);
@@ -505,7 +513,6 @@ function formatCurrency(amount) {
   font-weight: 800;
 }
 
-/* ===== SUBMIT BUTTON ===== */
 .submit-button {
   width: calc(100% - 48px);
   margin: 0 24px 24px;
@@ -538,7 +545,6 @@ function formatCurrency(amount) {
   box-shadow: none;
 }
 
-/* ===== RESPONSIVE ===== */
 @media (max-width: 768px) {
   .payment-method-container {
     padding: 12px;
