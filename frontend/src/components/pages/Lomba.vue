@@ -1,27 +1,30 @@
 <template>
   <section id="lomba-section">
     <div class="content-wrapper">
-      
       <!-- Section Title -->
       <h1 class="main-title">Lomba Memancing</h1>
 
       <!-- Competition Card 1 -->
       <div class="lomba-card">
         <div class="lomba-image">
-          <img 
-            src="../../assets/img/lomba/lomba1.avif" 
+          <img
+            src="../../assets/img/lomba/lomba1.avif"
             alt="Suasana lomba memancing 1"
-          >
+          />
         </div>
         <div class="lomba-details">
           <span class="lomba-badge">LOMBA 1</span>
           <h2 class="lomba-title">Fishing Challenge Pangandaran 2025</h2>
           <p class="lomba-description">
-            Lomba mancing skala nasional dengan target ikan laut di salah satu pantai terbaik Indonesia.
+            Lomba mancing skala nasional dengan target ikan laut di salah satu
+            pantai terbaik Indonesia.
           </p>
           <ul class="detail-list">
             <li>
-              <font-awesome-icon icon="fa-solid fa-calendar-days" class="icon" />
+              <font-awesome-icon
+                icon="fa-solid fa-calendar-days"
+                class="icon"
+              />
               <span>14 Juli 2025</span>
             </li>
             <li>
@@ -37,7 +40,10 @@
               <span>Hadiah utama: Rp10.000.000 + Trophy</span>
             </li>
             <li>
-              <font-awesome-icon icon="fa-solid fa-scale-balanced" class="icon" />
+              <font-awesome-icon
+                icon="fa-solid fa-scale-balanced"
+                class="icon"
+              />
               <span>Penilaian: Ikan terberat (1 ekor)</span>
             </li>
           </ul>
@@ -47,20 +53,24 @@
       <!-- Competition Card 2 -->
       <div class="lomba-card">
         <div class="lomba-image">
-          <img 
-            src="../../assets/img/lomba/lomba2.avif" 
+          <img
+            src="../../assets/img/lomba/lomba2.avif"
             alt="Suasana lomba memancing 2"
-          >
+          />
         </div>
         <div class="lomba-details">
           <span class="lomba-badge">LOMBA 2</span>
           <h2 class="lomba-title">Alaska Salmon Hunt 2025</h2>
           <p class="lomba-description">
-            Kompetisi memancing salmon di sungai terbesar Alaska dengan pemandangan alam yang spektakuler.
+            Kompetisi memancing salmon di sungai terbesar Alaska dengan
+            pemandangan alam yang spektakuler.
           </p>
           <ul class="detail-list">
             <li>
-              <font-awesome-icon icon="fa-solid fa-calendar-days" class="icon" />
+              <font-awesome-icon
+                icon="fa-solid fa-calendar-days"
+                class="icon"
+              />
               <span>21 Agustus 2025</span>
             </li>
             <li>
@@ -76,13 +86,15 @@
               <span>Hadiah utama: $20.000 + Trophy Emas</span>
             </li>
             <li>
-              <font-awesome-icon icon="fa-solid fa-scale-balanced" class="icon" />
+              <font-awesome-icon
+                icon="fa-solid fa-scale-balanced"
+                class="icon"
+              />
               <span>Penilaian: Total berat 3 ekor ikan</span>
             </li>
           </ul>
         </div>
       </div>
-
     </div>
   </section>
 </template>
@@ -278,22 +290,22 @@
     justify-content: flex-start;
     max-height: 420px;
   }
-  
+
   /* Custom scrollbar untuk details */
   .lomba-details::-webkit-scrollbar {
     width: 8px;
   }
-  
+
   .lomba-details::-webkit-scrollbar-track {
     background: #f1f1f1;
     border-radius: 10px;
   }
-  
+
   .lomba-details::-webkit-scrollbar-thumb {
     background: #0077b6;
     border-radius: 10px;
   }
-  
+
   .lomba-details::-webkit-scrollbar-thumb:hover {
     background: #023e8a;
   }

@@ -1,25 +1,45 @@
 <template>
   <div class="page-wrapper">
-
     <section id="home" class="hero-section">
       <div class="hero-overlay"></div>
       <div class="container">
         <div class="hero-content">
-          <h1 class="hero-title">Temukan Spot Mancing <br> <span class="highlight">Terbaikmu</span></h1>
-          <p class="hero-subtitle">Jelajahi ribuan kolam dan spot mancing di seluruh Indonesia dengan mudah dan cepat.
+          <h1 class="hero-title">
+            Temukan Spot Mancing <br />
+            <span class="highlight">Terbaikmu</span>
+          </h1>
+          <p class="hero-subtitle">
+            Jelajahi ribuan kolam dan spot mancing di seluruh Indonesia dengan
+            mudah dan cepat.
           </p>
 
           <div class="search-wrapper">
             <div class="search-box">
-              <font-awesome-icon icon="fa-solid fa-magnifying-glass" class="search-icon" />
-              <input type="text" placeholder="Cari nama tempat atau kota..." class="search-field" v-model="searchQuery"
-                @focus="showOverlay = true" @blur="handleBlur" />
+              <font-awesome-icon
+                icon="fa-solid fa-magnifying-glass"
+                class="search-icon"
+              />
+              <input
+                type="text"
+                placeholder="Cari nama tempat atau kota..."
+                class="search-field"
+                v-model="searchQuery"
+                @focus="showOverlay = true"
+                @blur="handleBlur"
+              />
 
               <transition name="fade">
-                <div v-if="showOverlay && filteredList.length > 0" class="search-dropdown">
-                  <div v-for="item in filteredList.slice(0, 4)" :key="item.id" class="dropdown-item"
-                    @mousedown="goToDetail(item.id)">
-                    <img :src="item.gambar" class="thumb">
+                <div
+                  v-if="showOverlay && filteredList.length > 0"
+                  class="search-dropdown"
+                >
+                  <div
+                    v-for="item in filteredList.slice(0, 4)"
+                    :key="item.id"
+                    class="dropdown-item"
+                    @mousedown="goToDetail(item.id)"
+                  >
+                    <img :src="item.gambar" class="thumb" />
                     <div class="item-info">
                       <strong>{{ item.nama }}</strong>
                       <small>{{ item.kota }}</small>
@@ -29,7 +49,6 @@
               </transition>
             </div>
           </div>
-
         </div>
       </div>
     </section>
@@ -44,26 +63,37 @@
         <div v-if="isLoading" class="loading-text">Memuat tempat...</div>
 
         <div v-else class="grid-3">
-          <div v-for="place in tempatList.slice(0, 3)" :key="place.id" class="card" @click="goToDetail(place.id)">
+          <div
+            v-for="place in tempatList.slice(0, 3)"
+            :key="place.id"
+            class="card"
+            @click="goToDetail(place.id)"
+          >
             <div class="card-img-wrap">
-              <img :src="place.gambar" :alt="place.nama">
+              <img :src="place.gambar" :alt="place.nama" />
               <span class="badge">{{ place.kota }}</span>
             </div>
             <div class="card-body">
               <h3>{{ place.nama }}</h3>
               <div class="rating">
-                <font-awesome-icon icon="fa-solid fa-star" style="color: #ffb703;" />
+                <font-awesome-icon
+                  icon="fa-solid fa-star"
+                  style="color: #ffb703"
+                />
                 {{ place.rating }} / 5.0
               </div>
               <p class="location">
-                <font-awesome-icon icon="fa-solid fa-location-dot" /> {{ place.lokasi }}
+                <font-awesome-icon icon="fa-solid fa-location-dot" />
+                {{ place.lokasi }}
               </p>
             </div>
           </div>
         </div>
 
         <div class="center-btn">
-          <button class="btn-main" @click="router.push('/memancing-section')">Lihat Semua Tempat</button>
+          <button class="btn-main" @click="router.push('/memancing-section')">
+            Lihat Semua Tempat
+          </button>
         </div>
       </div>
     </section>
@@ -75,7 +105,11 @@
           <p>Tingkatkan skill memancingmu dengan panduan ahli</p>
         </div>
 
-        <Carousel :items-to-show="carouselItemsToShow" :wrap-around="true" :autoplay="3000">
+        <Carousel
+          :items-to-show="carouselItemsToShow"
+          :wrap-around="true"
+          :autoplay="3000"
+        >
           <Slide v-for="(tip, i) in tipsList" :key="i">
             <div class="tip-card-carousel">
               <div class="tip-img-box">
@@ -103,14 +137,33 @@
           <p>Kompetisi bergengsi dengan hadiah fantastis</p>
         </div>
 
-        <div class="lomba-grid">
-          <div v-for="(lomba, index) in lombaList" :key="lomba.id" class="lomba-card-pro">
+        <div v-if="isLoading" class="loading-state">
+          <p>Memuat data lomba...</p>
+        </div>
+
+        <div v-else class="lomba-grid">
+          <div
+            v-for="(lomba, index) in lombaList"
+            :key="lomba.id"
+            class="lomba-card-pro"
+          >
             <div class="lomba-header">
-              <img :src="lomba.image_url || 'https://via.placeholder.com/600x400?text=Lomba'" :alt="lomba.nama_lomba">
-              <span :class="['lomba-badge', index % 2 === 0 ? 'nasional' : 'regional']">
-                {{ index % 2 === 0 ? 'NASIONAL' : 'REGIONAL' }}
+              <img
+                :src="lomba.image_url"
+                :alt="lomba.nama_lomba"
+                class="lomba-img"
+              />
+
+              <span
+                :class="[
+                  'lomba-badge',
+                  index % 2 === 0 ? 'nasional' : 'regional',
+                ]"
+              >
+                {{ index % 2 === 0 ? "NASIONAL" : "REGIONAL" }}
               </span>
             </div>
+
             <div class="lomba-body">
               <h3>{{ lomba.nama_lomba }}</h3>
               <p class="desc">{{ lomba.deskripsi }}</p>
@@ -136,18 +189,16 @@
             </div>
           </div>
         </div>
-
       </div>
     </section>
-
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed } from "vue";
 import { useRouter } from "vue-router";
-import { Carousel, Slide, Pagination, Navigation } from 'vue3-carousel'
-import 'vue3-carousel/dist/carousel.css'
+import { Carousel, Slide, Pagination, Navigation } from "vue3-carousel";
+import "vue3-carousel/dist/carousel.css";
 
 const router = useRouter();
 const showOverlay = ref(false);
@@ -161,12 +212,16 @@ const lombaList = ref([]);
 
 // Responsive Carousel
 const screenWidth = ref(window.innerWidth);
-const updateWidth = () => { screenWidth.value = window.innerWidth; };
+const updateWidth = () => {
+  screenWidth.value = window.innerWidth;
+};
 onMounted(() => {
-  window.addEventListener('resize', updateWidth);
+  window.addEventListener("resize", updateWidth);
   fetchAllData();
 });
-onBeforeUnmount(() => { window.removeEventListener('resize', updateWidth); });
+onBeforeUnmount(() => {
+  window.removeEventListener("resize", updateWidth);
+});
 
 const carouselItemsToShow = computed(() => {
   if (screenWidth.value < 768) return 1;
@@ -178,54 +233,106 @@ const carouselItemsToShow = computed(() => {
 async function fetchAllData() {
   try {
     // 1. Fetch Tempat
-    const resTempat = await fetch('http://localhost:3000/tempat_mancing');
+    const resTempat = await fetch("http://localhost:3000/tempat_mancing");
     const dataTempat = await resTempat.json();
-    tempatList.value = dataTempat.map(item => ({
+    tempatList.value = dataTempat.map((item) => ({
       id: item.id,
       nama: item.nama,
       lokasi: item.lokasi,
-      kota: capitalizeWords(item.kota || 'Indonesia'),
+      kota: capitalizeWords(item.kota || "Indonesia"),
       rating: 4.5,
-      gambar: item.image_url || 'https://via.placeholder.com/300x200?text=No+Image'
+      gambar: item.image_url
+        ? `/img/tempat-pemancingan/${item.image_url}` // Path ke folder public
+        : "https://via.placeholder.com/150?text=No+Image",
     }));
 
     // 2. Fetch Tips
-    const resTips = await fetch('http://localhost:3000/content/tips');
+    const resTips = await fetch("http://localhost:3000/content/tips");
     if (resTips.ok) tipsList.value = await resTips.json();
 
     // 3. Fetch Lomba
-    const resLomba = await fetch('http://localhost:3000/content/lomba');
-    if (resLomba.ok) lombaList.value = await resLomba.json();
+    const resLomba = await fetch("http://localhost:3000/content/lomba");
+    if (resLomba.ok) {
+      const dataLomba = await resLomba.json(); // Ambil JSON sekali saja di sini
 
+      lombaList.value = dataLomba.map((lomba) => {
+        // --- LOGIKA GAMBAR HYBRID ---
+        let finalImage;
+
+        // 1. Cek apakah ada data gambar
+        if (lomba.image_url) {
+          // 2. Cek apakah link online (dimulai dengan http)
+          if (lomba.image_url.startsWith("http")) {
+            finalImage = lomba.image_url;
+          } else {
+            // 3. Jika bukan link online, berarti file lokal di public/img/lomba
+            finalImage = `/img/lomba/${lomba.image_url}`;
+          }
+        } else {
+          // 4. Fallback jika kosong
+          finalImage = "https://via.placeholder.com/600x400?text=Lomba";
+        }
+
+        return {
+          id: lomba.id,
+          nama_lomba: lomba.nama_lomba,
+          deskripsi: lomba.deskripsi,
+          tanggal_pelaksanaan: lomba.tanggal_pelaksanaan,
+          lokasi: lomba.lokasi,
+          biaya_pendaftaran: lomba.biaya_pendaftaran,
+          hadiah_utama: lomba.hadiah_utama,
+          image_url: finalImage, // <--- Masukkan hasil logika ke sini
+        };
+      });
+    }
   } catch (err) {
-    console.error(err);
+    console.error("Gagal load data:", err);
   } finally {
     isLoading.value = false;
   }
 }
 
+onMounted(() => {
+  fetchAllData();
+});
+
 // --- HELPERS ---
-function capitalizeWords(str) { return str.replace(/\b\w/g, char => char.toUpperCase()); }
-const formatCurrency = (val) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(val);
-const formatDate = (dateStr) => new Date(dateStr).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+function capitalizeWords(str) {
+  return str.replace(/\b\w/g, (char) => char.toUpperCase());
+}
+const formatCurrency = (val) =>
+  new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR" }).format(
+    val
+  );
+const formatDate = (dateStr) =>
+  new Date(dateStr).toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
 
 // Helper Icon Tips (Karena di DB ga ada kolom icon, kita mapping manual/random)
 const getTipIcon = (index) => {
-  const icons = ['🪱', '🎣', '⏰', '⚙️', '🪢', '🐟'];
+  const icons = ["🪱", "🎣", "⏰", "⚙️", "🪢", "🐟"];
   return icons[index % icons.length];
-}
+};
 
 const filteredList = computed(() => {
   if (!searchQuery.value) return tempatList.value;
   const query = searchQuery.value.toLowerCase();
-  return tempatList.value.filter(item =>
-    item.nama.toLowerCase().includes(query) ||
-    item.kota.toLowerCase().includes(query)
+  return tempatList.value.filter(
+    (item) =>
+      item.nama.toLowerCase().includes(query) ||
+      item.kota.toLowerCase().includes(query)
   );
 });
 
-const goToDetail = (id) => { router.push({ name: 'ReviewSection', params: { id: id } }); }
-const handleBlur = () => { setTimeout(() => (showOverlay.value = false), 200); };
+const goToDetail = (id) => {
+  router.push({ name: "ReviewSection", params: { id: id } });
+};
+const handleBlur = () => {
+  setTimeout(() => (showOverlay.value = false), 200);
+};
 </script>
 
 <style scoped>
@@ -273,7 +380,7 @@ const handleBlur = () => { setTimeout(() => (showOverlay.value = false), 200); }
   justify-content: center;
   text-align: center;
   position: relative;
-  background-image: url('../../assets/img/search-section-bg.svg');
+  background-image: url("../../assets/img/search-section-bg.svg");
   background-size: cover;
   background-position: center;
 }
