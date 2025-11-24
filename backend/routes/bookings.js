@@ -46,6 +46,19 @@ async function bookingRoutes(fastify, options) {
       try {
         connection = await fastify.mysql.getConnection();
 
+        const [tempatRows] = await connection.query(
+          "SELECT harga_per_jam FROM tempat_mancing WHERE id = ?",
+          [tempat_id],
+        );
+
+        if (tempatRows.length === 0) {
+          connection.release();
+          return reply.status(404).send({ message: "Tempat tidak ditemukan" });
+        }
+
+        const hargaPerJam = Number(tempatRows[0].harga_per_jam);
+        const totalHarga = hargaPerJam * duration;
+
         // Cek Bentrok Terakhir (Safety Net - Biar ga tabrakan pas submit barengan)
         const [existing] = await connection.query(
           `SELECT id FROM bookings 
@@ -63,18 +76,22 @@ async function bookingRoutes(fastify, options) {
 
         // INSERT LENGKAP (Dengan start_time & end_time)
         const [result] = await connection.query(
-          "INSERT INTO bookings (user_id, tempat_id, no_kursi, tanggal_booking, start_time, end_time) VALUES (?, ?, ?, ?, ?, ?)",
-          [user_id, tempat_id, no_kursi, tanggal_booking, start_time, end_time],
+          "INSERT INTO bookings (user_id, tempat_id, no_kursi, tanggal_booking, start_time, end_time, total_harga, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')",
+          [
+            user_id,
+            tempat_id,
+            no_kursi,
+            tanggal_booking,
+            start_time,
+            end_time,
+            totalHarga,
+          ],
         );
 
         connection.release();
 
         return reply.status(201).send({
           id: result.insertId,
-          user_id,
-          tempat_id,
-          no_kursi,
-          tanggal_booking,
         });
       } catch (err) {
         if (connection) connection.release();
@@ -172,6 +189,8 @@ async function bookingRoutes(fastify, options) {
 
       // Filter bentrok jam (jika parameter jam dikirim)
       if (start && durasi) {
+        const [h, m] = start.split(":").map(Number);
+        const endH = h + Number(durasi);
         const reqStart = start;
         const reqEnd = calculateEndTime(start, durasi);
 

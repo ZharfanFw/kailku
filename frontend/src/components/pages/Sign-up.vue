@@ -7,9 +7,7 @@
           <p class="signup-subtitle">
             Bergabunglah dengan komunitas pemancing terbesar. <br />
             Sudah punya akun?
-            <span class="link-login" @click="$router.push('/login')"
-              >Masuk di sini</span
-            >
+            <span class="link-login" @click="$router.push('/login')">Masuk di sini</span>
           </p>
         </div>
 
@@ -17,111 +15,69 @@
           <div class="form-row">
             <div class="form-group">
               <label>Nama Depan</label>
-              <input
-                v-model="formData.firstName"
-                type="text"
-                placeholder="Contoh: Budi"
-                :class="['form-input', { 'input-error': errors.firstName }]"
-                @input="clearError('firstName')"
-              />
+              <input v-model="formData.firstName" type="text" placeholder="Contoh: Budi"
+                :class="['form-input', { 'input-error': errors.firstName }]" @input="clearError('firstName')" />
               <span v-if="errors.firstName" class="error-text">{{
                 errors.firstName
-              }}</span>
+                }}</span>
             </div>
 
             <div class="form-group">
               <label>Nama Belakang</label>
-              <input
-                v-model="formData.lastName"
-                type="text"
-                placeholder="Contoh: Santoso"
-                :class="['form-input', { 'input-error': errors.lastName }]"
-                @input="clearError('lastName')"
-              />
+              <input v-model="formData.lastName" type="text" placeholder="Contoh: Santoso"
+                :class="['form-input', { 'input-error': errors.lastName }]" @input="clearError('lastName')" />
               <span v-if="errors.lastName" class="error-text">{{
                 errors.lastName
-              }}</span>
+                }}</span>
             </div>
           </div>
 
           <div class="form-group">
             <label>Alamat Email</label>
-            <input
-              v-model="formData.email"
-              type="email"
-              placeholder="nama@email.com"
-              :class="['form-input', { 'input-error': errors.email }]"
-              @input="clearError('email')"
-            />
+            <input v-model="formData.email" type="email" placeholder="nama@email.com"
+              :class="['form-input', { 'input-error': errors.email }]" @input="clearError('email')" />
             <span v-if="errors.email" class="error-text">{{
               errors.email
-            }}</span>
+              }}</span>
           </div>
 
           <div class="form-group">
             <label>Password</label>
             <div class="input-password-wrapper">
-              <input
-                v-model="formData.password"
-                :type="showPassword ? 'text' : 'password'"
-                placeholder="Minimal 6 karakter"
-                :class="['form-input', { 'input-error': errors.password }]"
-                @input="clearError('password')"
-              />
-              <button
-                type="button"
-                class="toggle-btn"
-                @click="showPassword = !showPassword"
-              >
-                <font-awesome-icon
-                  :icon="
-                    showPassword ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye'
-                  "
-                />
+              <input v-model="formData.password" :type="showPassword ? 'text' : 'password'"
+                placeholder="Minimal 8 karakter" :class="['form-input', { 'input-error': errors.password }]"
+                @input="clearError('password')" />
+              <button type="button" class="toggle-btn" @click="showPassword = !showPassword">
+                <font-awesome-icon :icon="showPassword ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye'
+                  " />
               </button>
             </div>
             <span v-if="errors.password" class="error-text">{{
               errors.password
-            }}</span>
+              }}</span>
           </div>
 
           <div class="form-group">
             <label>Konfirmasi Password</label>
             <div class="input-password-wrapper">
-              <input
-                v-model="formData.confirmPassword"
-                :type="showConfirmPassword ? 'text' : 'password'"
-                placeholder="Ulangi password"
-                :class="[
+              <input v-model="formData.confirmPassword" :type="showConfirmPassword ? 'text' : 'password'"
+                placeholder="Ulangi password" :class="[
                   'form-input',
                   { 'input-error': errors.confirmPassword },
-                ]"
-                @input="clearError('confirmPassword')"
-              />
-              <button
-                type="button"
-                class="toggle-btn"
-                @click="showConfirmPassword = !showConfirmPassword"
-              >
-                <font-awesome-icon
-                  :icon="
-                    showConfirmPassword
-                      ? 'fa-solid fa-eye-slash'
-                      : 'fa-solid fa-eye'
-                  "
-                />
+                ]" @input="clearError('confirmPassword')" />
+              <button type="button" class="toggle-btn" @click="showConfirmPassword = !showConfirmPassword">
+                <font-awesome-icon :icon="showConfirmPassword
+                    ? 'fa-solid fa-eye-slash'
+                    : 'fa-solid fa-eye'
+                  " />
               </button>
             </div>
             <span v-if="errors.confirmPassword" class="error-text">{{
               errors.confirmPassword
-            }}</span>
+              }}</span>
           </div>
 
-          <button
-            @click="handleSubmit"
-            class="btn-submit"
-            :disabled="isLoading"
-          >
+          <button @click="handleSubmit" class="btn-submit" :disabled="isLoading">
             {{ isLoading ? "Memproses..." : "Daftar Sekarang" }}
           </button>
         </div>

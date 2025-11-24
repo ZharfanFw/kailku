@@ -24,6 +24,8 @@ import {
   faCircleExclamation,
   faRightFromBracket,
   faMapLocationDot,
+  faChevronRight,
+  faChevronLeft,
 } from "@fortawesome/free-solid-svg-icons";
 
 import { faClock } from "@fortawesome/free-regular-svg-icons";
@@ -44,6 +46,8 @@ library.add(
   faRightFromBracket,
   faClock,
   faMapLocationDot,
+  faChevronRight,
+  faChevronLeft,
 );
 
 const app = createApp(App);
