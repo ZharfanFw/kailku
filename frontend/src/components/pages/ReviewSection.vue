@@ -1,9 +1,13 @@
 <template>
   <div class="review-page-container">
     <header class="place-header">
-      <img :src="place.image_url || placeholderImg" :alt="place.nama" class="header-image" />
+      <img
+        :src="place.image_url || placeholderImg"
+        :alt="place.nama"
+        class="header-image"
+      />
       <div class="header-overlay">
-        <h1 class="title">{{ place.nama || 'Memuat...' }}</h1>
+        <h1 class="title">{{ place.nama || "Memuat..." }}</h1>
       </div>
     </header>
 
@@ -16,34 +20,45 @@
       <div class="details-column">
         <div class="details-card">
           <h2>Deskripsi Tempat</h2>
-          <p>{{ place.deskripsi || 'Tidak ada deskripsi.' }}</p>
+          <p>{{ place.deskripsi || "Tidak ada deskripsi." }}</p>
 
           <div class="extra-info">
             <div class="info-item">
-              <strong>Harga:</strong> {{ formatCurrency(place.harga_per_jam) }} / jam
+              <strong>Harga:</strong>
+              {{ formatCurrency(place.harga_per_jam) }} / jam
             </div>
             <div class="info-item">
-              <strong>Jam Buka:</strong> {{ formatTime(place.jam_buka) }} - {{ formatTime(place.jam_tutup) }}
+              <strong>Jam Buka:</strong> {{ formatTime(place.jam_buka) }} -
+              {{ formatTime(place.jam_tutup) }}
             </div>
           </div>
 
           <div class="facilities-tags">
-            <span v-for="(item, index) in place.fasilitasArray" :key="index" class="facility-tag">
+            <span
+              v-for="(item, index) in place.fasilitasArray"
+              :key="index"
+              class="facility-tag"
+            >
               {{ item.trim() }}
             </span>
           </div>
 
-          <button class="btn blue" @click="goToBooking">Booking
-            Sekarang</button>
+          <button class="btn blue" @click="goToBooking">
+            Booking Sekarang
+          </button>
         </div>
 
         <div class="details-card">
           <h2>Lokasi</h2>
           <p>
-            📍 {{ place.lokasi || 'Lokasi belum tersedia' }} ({{ place.kota }})
+            📍 {{ place.lokasi || "Lokasi belum tersedia" }} ({{ place.kota }})
           </p>
 
-          <a :href="getGoogleMapsLink(place.lokasi, place.kota)" target="_blank" class="btn-maps">
+          <a
+            :href="getGoogleMapsLink(place.lokasi, place.kota)"
+            target="_blank"
+            class="btn-maps"
+          >
             <font-awesome-icon icon="fa-solid fa-map-location-dot" />
             Buka di Google Maps
           </a>
@@ -54,24 +69,47 @@
         <div class="review-section-header">
           <h2>Ulasan Pengguna ({{ reviews.length }})</h2>
 
-          <button v-if="isLoggedIn && !showReviewForm" class="btn-small-outline" @click="showReviewForm = true">
+          <button
+            v-if="isLoggedIn && !showReviewForm"
+            class="btn-small-outline"
+            @click="showReviewForm = true"
+          >
             + Tulis Ulasan
           </button>
-          <button v-else-if="!isLoggedIn" class="btn-small-text" @click="$router.push('/login')">
+          <button
+            v-else-if="!isLoggedIn"
+            class="btn-small-text"
+            @click="$router.push('/login')"
+          >
             Login untuk mengulas
           </button>
         </div>
 
         <div v-if="showReviewForm" class="write-review-card">
           <div class="rating-input">
-            <font-awesome-icon v-for="n in 5" :key="n" icon="fa-solid fa-star"
-              :class="['star-input', { active: newReview.rating >= n }]" @click="newReview.rating = n" />
+            <font-awesome-icon
+              v-for="n in 5"
+              :key="n"
+              icon="fa-solid fa-star"
+              :class="['star-input', { active: newReview.rating >= n }]"
+              @click="newReview.rating = n"
+            />
           </div>
-          <textarea v-model="newReview.komentar" placeholder="Bagikan pengalamanmu..." rows="3"></textarea>
+          <textarea
+            v-model="newReview.komentar"
+            placeholder="Bagikan pengalamanmu..."
+            rows="3"
+          ></textarea>
           <div class="form-actions">
-            <button class="btn-cancel" @click="showReviewForm = false">Batal</button>
-            <button class="btn-submit" @click="submitReview" :disabled="isSubmitting">
-              {{ isSubmitting ? 'Mengirim...' : 'Kirim' }}
+            <button class="btn-cancel" @click="showReviewForm = false">
+              Batal
+            </button>
+            <button
+              class="btn-submit"
+              @click="submitReview"
+              :disabled="isSubmitting"
+            >
+              {{ isSubmitting ? "Mengirim..." : "Kirim" }}
             </button>
           </div>
         </div>
@@ -80,17 +118,31 @@
           <div class="review-card" v-for="review in reviews" :key="review.id">
             <div class="review-header">
               <div class="reviewer-info">
-                <img :src="review.avatar_url || 'https://placehold.co/40x40/0077b6/fff?text=U'" class="avatar-small" />
-                <span class="reviewer-name">{{ review.full_name || review.username }}</span>
+                <img
+                  :src="
+                    review.avatar_url ||
+                    'https://placehold.co/40x40/0077b6/fff?text=U'
+                  "
+                  class="avatar-small"
+                />
+                <span class="reviewer-name">{{
+                  review.full_name || review.username
+                }}</span>
               </div>
 
               <div class="stars">
-                <font-awesome-icon v-for="n in 5" :key="'star-' + n" icon="fa-solid fa-star"
-                  :class="n <= review.rating ? 'star-filled' : 'star-empty'" />
+                <font-awesome-icon
+                  v-for="n in 5"
+                  :key="'star-' + n"
+                  icon="fa-solid fa-star"
+                  :class="n <= review.rating ? 'star-filled' : 'star-empty'"
+                />
               </div>
             </div>
             <p class="comment-text">"{{ review.komentar }}"</p>
-            <small class="review-date">{{ formatDate(review.created_at) }}</small>
+            <small class="review-date">{{
+              formatDate(review.created_at)
+            }}</small>
           </div>
         </div>
 
@@ -114,13 +166,14 @@ const placeId = route.params.id;
 const place = ref({});
 const reviews = ref([]);
 const isLoading = ref(true);
-const isLoggedIn = ref(!!localStorage.getItem('kailku_token'));
-const placeholderImg = 'https://via.placeholder.com/1200x500?text=Loading+Image';
+const isLoggedIn = ref(!!localStorage.getItem("kailku_token"));
+const placeholderImg =
+  "https://via.placeholder.com/1200x500?text=Loading+Image";
 
 // State Form
 const showReviewForm = ref(false);
 const isSubmitting = ref(false);
-const newReview = ref({ rating: 5, komentar: '' });
+const newReview = ref({ rating: 5, komentar: "" });
 
 function goToBooking() {
   if (place.value && place.value.id) {
@@ -135,10 +188,25 @@ async function fetchPlaceDetail() {
   try {
     const res = await fetch(`http://localhost:3000/tempat_mancing/${placeId}`);
     if (!res.ok) throw new Error("Gagal load tempat");
+
     const data = await res.json();
 
-    // Format fasilitas
-    data.fasilitasArray = data.fasilitas ? data.fasilitas.split(',') : [];
+    // --- PERBAIKAN 1: LOGIKA GAMBAR ---
+    // Cek apakah image_url ada isinya
+    if (data.image_url) {
+      // Jika url dimulai dengan 'http', berarti link eksternal (biarkan saja)
+      // Jika tidak, berarti nama file lokal, tambahkan path folder public
+      if (!data.image_url.startsWith("http")) {
+        data.image_url = `/img/tempat-pemancingan/${data.image_url}`;
+      }
+    } else {
+      // Jika null, pakai placeholder
+      data.image_url = placeholderImg;
+    }
+
+    // Format fasilitas (String "Wifi,Kantin" -> Array ["Wifi", "Kantin"])
+    data.fasilitasArray = data.fasilitas ? data.fasilitas.split(",") : [];
+
     place.value = data;
   } catch (err) {
     console.error(err);
@@ -148,29 +216,33 @@ async function fetchPlaceDetail() {
 
 async function fetchReviews() {
   try {
-    const res = await fetch(`http://localhost:3000/reviews?tempat_id=${placeId}`);
+    const res = await fetch(
+      `http://localhost:3000/reviews?tempat_id=${placeId}`
+    );
     if (res.ok) reviews.value = await res.json();
-  } catch (err) { console.error(err); }
+  } catch (err) {
+    console.error(err);
+  }
 }
 
 async function submitReview() {
   if (!newReview.value.komentar) return alert("Isi komentar dulu ya!");
 
-  const token = localStorage.getItem('kailku_token');
+  const token = localStorage.getItem("kailku_token");
   isSubmitting.value = true;
 
   try {
-    const res = await fetch('http://localhost:3000/reviews', {
-      method: 'POST',
+    const res = await fetch("http://localhost:3000/reviews", {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({
         tempat_id: placeId,
         rating: newReview.value.rating,
-        komentar: newReview.value.komentar
-      })
+        komentar: newReview.value.komentar,
+      }),
     });
 
     if (!res.ok) throw new Error("Gagal kirim");
@@ -179,7 +251,6 @@ async function submitReview() {
     newReview.value.komentar = "";
     showReviewForm.value = false;
     await fetchReviews();
-
   } catch (err) {
     alert("Gagal mengirim ulasan.");
   } finally {
@@ -188,13 +259,21 @@ async function submitReview() {
 }
 
 // Helpers
-const formatCurrency = (val) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(val || 0);
-const formatTime = (time) => time ? time.slice(0, 5) : '--:--';
-const formatDate = (date) => new Date(date).toLocaleDateString('id-ID', { dateStyle: 'medium' });
+const formatCurrency = (val) =>
+  new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR" }).format(
+    val || 0
+  );
+const formatTime = (time) => (time ? time.slice(0, 5) : "--:--");
+const formatDate = (date) =>
+  new Date(date).toLocaleDateString("id-ID", { dateStyle: "medium" });
 
+// --- PERBAIKAN 2: GOOGLE MAPS LINK ---
 const getGoogleMapsLink = (lokasi, kota) => {
   const query = `${lokasi}, ${kota}`;
-  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+  // Menggunakan format URL pencarian Google Maps yang benar
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+    query
+  )}`;
 };
 
 // Init

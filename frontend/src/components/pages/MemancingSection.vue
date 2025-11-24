@@ -2,20 +2,34 @@
   <div class="memancing-section">
     <div class="header-section">
       <h1 class="page-title">Temukan Spot Terbaik</h1>
-      <p class="page-subtitle">Jelajahi berbagai lokasi pemancingan favorit di sekitarmu</p>
+      <p class="page-subtitle">
+        Jelajahi berbagai lokasi pemancingan favorit di sekitarmu
+      </p>
     </div>
 
     <div class="controls-wrapper">
       <div class="search-container">
         <div class="search-box">
-          <font-awesome-icon icon="fa-solid fa-magnifying-glass" class="search-icon" />
-          <input type="text" v-model="searchQuery" placeholder="Cari nama tempat atau lokasi..." class="search-input" />
+          <font-awesome-icon
+            icon="fa-solid fa-magnifying-glass"
+            class="search-icon"
+          />
+          <input
+            type="text"
+            v-model="searchQuery"
+            placeholder="Cari nama tempat atau lokasi..."
+            class="search-input"
+          />
         </div>
       </div>
 
       <div class="filter-tabs">
-        <button v-for="filter in filters" :key="filter.id"
-          :class="['filter-tab', { active: selectedFilter === filter.id }]" @click="selectFilter(filter.id)">
+        <button
+          v-for="filter in filters"
+          :key="filter.id"
+          :class="['filter-tab', { active: selectedFilter === filter.id }]"
+          @click="selectFilter(filter.id)"
+        >
           {{ filter.label }}
         </button>
       </div>
@@ -27,18 +41,28 @@
     </div>
 
     <div v-else-if="paginatedPlaces.length === 0" class="empty-state">
-      <img src="https://cdn-icons-png.flaticon.com/512/7486/7486744.png" alt="Kosong" width="80">
+      <img
+        src="https://cdn-icons-png.flaticon.com/512/7486/7486744.png"
+        alt="Kosong"
+        width="80"
+      />
       <h3>Tidak ada tempat ditemukan</h3>
       <p>Coba ubah kata kunci pencarian atau filter kotamu.</p>
       <button @click="resetFilters" class="btn-reset">Lihat Semua</button>
     </div>
 
     <div v-else class="fishing-grid">
-      <div v-for="place in paginatedPlaces" :key="place.id" class="fishing-card" @click="goToReview(place)">
+      <div
+        v-for="place in paginatedPlaces"
+        :key="place.id"
+        class="fishing-card"
+        @click="goToReview(place)"
+      >
         <div class="card-image">
           <img :src="place.image" :alt="place.name" loading="lazy" />
           <div class="category-badge">
-            <font-awesome-icon icon="fa-solid fa-location-dot" /> {{ place.city }}
+            <font-awesome-icon icon="fa-solid fa-location-dot" />
+            {{ place.city }}
           </div>
         </div>
 
@@ -56,7 +80,11 @@
           </div>
 
           <div class="card-facilities">
-            <span v-for="(facility, index) in place.facilities.slice(0, 3)" :key="index" class="facility-badge">
+            <span
+              v-for="(facility, index) in place.facilities.slice(0, 3)"
+              :key="index"
+              class="facility-badge"
+            >
               {{ facility.trim() }}
             </span>
             <span v-if="place.facilities.length > 3" class="facility-more">
@@ -76,16 +104,28 @@
     </div>
 
     <div v-if="totalPages > 1" class="pagination">
-      <button class="pagination-btn" :disabled="currentPage === 1" @click="previousPage">
+      <button
+        class="pagination-btn"
+        :disabled="currentPage === 1"
+        @click="previousPage"
+      >
         <font-awesome-icon icon="fa-solid fa-chevron-left" />
       </button>
 
-      <button v-for="page in visiblePages" :key="page" :class="['pagination-btn', { active: currentPage === page }]"
-        @click="goToPage(page)">
+      <button
+        v-for="page in visiblePages"
+        :key="page"
+        :class="['pagination-btn', { active: currentPage === page }]"
+        @click="goToPage(page)"
+      >
         {{ page }}
       </button>
 
-      <button class="pagination-btn" :disabled="currentPage === totalPages" @click="nextPage">
+      <button
+        class="pagination-btn"
+        :disabled="currentPage === totalPages"
+        @click="nextPage"
+      >
         <font-awesome-icon icon="fa-solid fa-chevron-right" />
       </button>
     </div>
@@ -115,7 +155,9 @@ const filteredPlaces = computed(() => {
 
   // Filter by City
   if (selectedFilter.value) {
-    places = places.filter((place) => place.city.toLowerCase() === selectedFilter.value.toLowerCase());
+    places = places.filter(
+      (place) => place.city.toLowerCase() === selectedFilter.value.toLowerCase()
+    );
   }
 
   // Filter by Search
@@ -125,7 +167,8 @@ const filteredPlaces = computed(() => {
       (place) =>
         place.name.toLowerCase().includes(query) ||
         place.location.toLowerCase().includes(query) ||
-        (place.facilities && place.facilities.some((f) => f.toLowerCase().includes(query)))
+        (place.facilities &&
+          place.facilities.some((f) => f.toLowerCase().includes(query)))
     );
   }
   return places;
@@ -171,21 +214,33 @@ function formatCurrency(amount) {
 async function fetchTempatMancing() {
   isLoading.value = true;
   try {
-    const response = await fetch('http://localhost:3000/tempat_mancing');
+    const response = await fetch("http://localhost:3000/tempat_mancing");
     if (!response.ok) throw new Error(`Error: ${response.status}`);
 
     const dataDariDatabase = await response.json();
 
     // Mapping Data
-    const dataSiapTampil = dataDariDatabase.map(db_tempat => {
+    const dataSiapTampil = dataDariDatabase.map((db_tempat) => {
+      // --- LOGIKA GAMBAR BARU ---
+      // 1. Cek apakah ada nama file di database
+      // 2. Jika ada, gabungkan dengan path folder public
+      let finalImage;
+      if (db_tempat.image_url) {
+        // Hasil: /img/tempat-pemancingan/nama_file.jpg
+        finalImage = `/img/tempat-pemancingan/${db_tempat.image_url}`;
+      } else {
+        // Jika null, pakai gambar placeholder
+        finalImage = "https://via.placeholder.com/400x250.png?text=No+Image";
+      }
+
       return {
         id: db_tempat.id,
         name: db_tempat.nama,
         location: db_tempat.lokasi,
         price: db_tempat.harga_per_jam,
-        image: db_tempat.image_url || 'https://via.placeholder.com/400x250.png?text=No+Image',
-        city: db_tempat.kota || 'Lainnya',
-        facilities: db_tempat.fasilitas ? db_tempat.fasilitas.split(',') : [],
+        image: finalImage, // <--- Masukkan variabel yang sudah diolah tadi
+        city: db_tempat.kota || "Lainnya",
+        facilities: db_tempat.fasilitas ? db_tempat.fasilitas.split(",") : [],
         rating: 4.5,
       };
     });
@@ -193,15 +248,14 @@ async function fetchTempatMancing() {
     fishingPlaces.value = dataSiapTampil;
 
     // Generate Filter Kota Otomatis
-    const cities = [...new Set(dataSiapTampil.map(item => item.city))];
+    const cities = [...new Set(dataSiapTampil.map((item) => item.city))];
     filters.value = [
       { id: null, label: "Semua Lokasi" },
-      ...cities.map(city => ({
+      ...cities.map((city) => ({
         id: city.toLowerCase(),
-        label: city.charAt(0).toUpperCase() + city.slice(1)
-      }))
+        label: city.charAt(0).toUpperCase() + city.slice(1),
+      })),
     ];
-
   } catch (err) {
     console.error("Gagal ambil data:", err);
   } finally {
@@ -280,7 +334,7 @@ watch(searchQuery, () => {
   padding-top: 100px;
   /* Spacer untuk navbar fixed */
   min-height: 100vh;
-  font-family: 'Poppins', sans-serif;
+  font-family: "Poppins", sans-serif;
 }
 
 /* --- HEADER & CONTROLS --- */

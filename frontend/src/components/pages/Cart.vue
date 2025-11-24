@@ -1,6 +1,5 @@
 <template>
   <div class="cart-container">
-
     <div class="booking-section" v-if="bookings.length > 0">
       <h2 class="section-title">🎫 Tiket Booking Tempat</h2>
       <div class="booking-list">
@@ -11,8 +10,11 @@
             <p class="loc">📍 {{ booking.lokasi_tempat }}</p>
             <div class="ticket-meta">
               <span>📅 {{ formatDate(booking.tanggal_booking) }}</span>
-              <span>⏰ {{ booking.start_time.slice(0, 5) }} - {{ booking.end_time.slice(0, 5) }}</span>
-              <span>🪑 Kursi No. {{ booking.no_kursi || 'Bebas' }}</span>
+              <span
+                >⏰ {{ booking.start_time.slice(0, 5) }} -
+                {{ booking.end_time.slice(0, 5) }}</span
+              >
+              <span>🪑 Kursi No. {{ booking.no_kursi || "Bebas" }}</span>
             </div>
           </div>
           <div class="ticket-status">
@@ -25,13 +27,18 @@
     <h2 class="section-title">🎣 Sewa / Beli Alat Pancing</h2>
 
     <div v-if="isLoadingTools" class="loading-state">
-      <div class="spinner"></div> Memuat alat pancing...
+      <div class="spinner"></div>
+      Memuat alat pancing...
     </div>
 
     <div v-else class="products-grid">
       <div v-for="product in products" :key="product.id" class="product-card">
         <div class="product-image-wrapper">
-          <img :src="product.image_url || placeholderImg" :alt="product.nama" class="product-image" />
+          <img
+            :src="product.image_url || placeholderImg"
+            :alt="product.nama"
+            class="product-image"
+          />
 
           <span class="product-badge">{{ product.kategori }}</span>
         </div>
@@ -45,20 +52,33 @@
 
           <div class="price-actions">
             <div v-if="product.harga_sewa" class="action-row">
-              <span class="price-text">{{ formatCurrency(product.harga_sewa) }} <small>/sewa</small></span>
-              <button class="add-btn outline" @click="addToCart(product, 'sewa')" :disabled="product.stok === 0">
+              <span class="price-text"
+                >{{ formatCurrency(product.harga_sewa) }}
+                <small>/sewa</small></span
+              >
+              <button
+                class="add-btn outline"
+                @click="addToCart(product, 'sewa')"
+                :disabled="product.stok === 0"
+              >
                 + Sewa
               </button>
             </div>
 
             <div v-if="product.harga_beli" class="action-row">
-              <span class="price-text">{{ formatCurrency(product.harga_beli) }} <small>/beli</small></span>
-              <button class="add-btn" @click="addToCart(product, 'beli')" :disabled="product.stok === 0">
+              <span class="price-text"
+                >{{ formatCurrency(product.harga_beli) }}
+                <small>/beli</small></span
+              >
+              <button
+                class="add-btn"
+                @click="addToCart(product, 'beli')"
+                :disabled="product.stok === 0"
+              >
                 + Beli
               </button>
             </div>
           </div>
-
         </div>
       </div>
     </div>
@@ -66,35 +86,66 @@
     <transition name="slide-up">
       <div class="cart-panel" v-if="cartItems.length > 0">
         <div class="cart-panel-header">
-          <h3 class="cart-panel-title">Keranjang Belanja ({{ cartItems.length }})</h3>
-          <button class="clear-cart-button" @click="clearCart">Hapus Semua</button>
+          <h3 class="cart-panel-title">
+            Keranjang Belanja ({{ cartItems.length }})
+          </h3>
+          <button class="clear-cart-button" @click="clearCart">
+            Hapus Semua
+          </button>
         </div>
 
         <div class="cart-items">
-          <div v-for="(item, index) in cartItems" :key="index" class="cart-item">
-            <img :src="item.image_url || placeholderImg" class="cart-item-image" />
+          <div
+            v-for="(item, index) in cartItems"
+            :key="index"
+            class="cart-item"
+          >
+            <img
+              :src="item.image_url || placeholderImg"
+              class="cart-item-image"
+            />
 
             <div class="cart-item-info">
               <h4 class="cart-item-name">
                 {{ item.nama }}
-                <span :class="['cart-item-badge', item.tipe === 'beli' ? 'badge-beli' : 'badge-sewa']">
+                <span
+                  :class="[
+                    'cart-item-badge',
+                    item.tipe === 'beli' ? 'badge-beli' : 'badge-sewa',
+                  ]"
+                >
                   {{ item.tipe === "beli" ? "Beli" : "Sewa" }}
                 </span>
               </h4>
-              <p class="cart-item-category">{{ formatCurrency(item.harga) }} x {{ item.jumlah }}</p>
+              <p class="cart-item-category">
+                {{ formatCurrency(item.harga) }} x {{ item.jumlah }}
+              </p>
             </div>
 
             <div class="cart-item-quantity">
-              <button class="quantity-btn" @click="item.jumlah > 1 ? item.jumlah-- : removeItem(index)">-</button>
+              <button
+                class="quantity-btn"
+                @click="item.jumlah > 1 ? item.jumlah-- : removeItem(index)"
+              >
+                -
+              </button>
               <span class="quantity-value">{{ item.jumlah }}</span>
-              <button class="quantity-btn" @click="item.jumlah++" :disabled="item.jumlah >= item.stok">+</button>
+              <button
+                class="quantity-btn"
+                @click="item.jumlah++"
+                :disabled="item.jumlah >= item.stok"
+              >
+                +
+              </button>
             </div>
 
             <p class="cart-item-price">
               {{ formatCurrency(item.harga * item.jumlah) }}
             </p>
 
-            <button class="remove-item-button" @click="removeItem(index)">✕</button>
+            <button class="remove-item-button" @click="removeItem(index)">
+              ✕
+            </button>
           </div>
         </div>
 
@@ -103,21 +154,29 @@
             <span class="total-label">Total:</span>
             <span class="total-value">{{ formatCurrency(grandTotal) }}</span>
           </div>
-          <button class="checkout-button" @click="handleCheckout" :disabled="isProcessing">
-            {{ isProcessing ? 'Memproses...' : 'Konfirmasi Pesanan' }}
+          <button
+            class="checkout-button"
+            @click="handleCheckout"
+            :disabled="isProcessing"
+          >
+            {{ isProcessing ? "Memproses..." : "Konfirmasi Pesanan" }}
           </button>
         </div>
       </div>
     </transition>
 
-    <div class="footer-panel-empty" v-if="cartItems.length === 0 && bookings.length > 0">
+    <div
+      class="footer-panel-empty"
+      v-if="cartItems.length === 0 && bookings.length > 0"
+    >
       <div class="cart-total">
         <span>Total Booking:</span>
         <span class="total-value">Bayar di Kasir</span>
       </div>
-      <button class="continue-button" @click="router.push('/payment')">Selesai (Bayar Nanti)</button>
+      <button class="continue-button" @click="router.push('/payment')">
+        Selesai (Bayar Nanti)
+      </button>
     </div>
-
   </div>
 </template>
 
@@ -126,7 +185,7 @@ import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 
 const router = useRouter();
-const placeholderImg = 'https://via.placeholder.com/150?text=Alat';
+const placeholderImg = "https://via.placeholder.com/150?text=Alat";
 
 // --- STATE ---
 const bookings = ref([]);
@@ -137,34 +196,48 @@ const isProcessing = ref(false);
 
 // --- 1. FETCH DATA ---
 onMounted(async () => {
-  const token = localStorage.getItem('kailku_token');
+  const token = localStorage.getItem("kailku_token");
   if (!token) {
     alert("Silakan login terlebih dahulu");
-    router.push('/login');
+    router.push("/login");
     return;
   }
 
   // A. Fetch Booking (Tiket)
   try {
-    const resBook = await fetch('http://localhost:3000/bookings/my', {
-      headers: { Authorization: `Bearer ${token}` }
+    const resBook = await fetch("http://localhost:3000/bookings/my", {
+      headers: { Authorization: `Bearer ${token}` },
     });
     if (resBook.ok) {
       const data = await resBook.json();
       // Ambil booking yang statusnya pending (baru dibuat)
       // Batasi 5 terakhir biar ga penuh
-      bookings.value = data.filter(b => b.status === 'pending').slice(0, 5);
+      bookings.value = data.filter((b) => b.status === "pending").slice(0, 5);
     }
-  } catch (e) { console.error(e); }
+  } catch (e) {
+    console.error(e);
+  }
 
   // B. Fetch Alat Pancing (Produk)
   try {
-    const resTools = await fetch('http://localhost:3000/alat_pancing');
+    const resTools = await fetch("http://localhost:3000/alat_pancing");
     if (resTools.ok) {
-      products.value = await resTools.json();
+      const dataProduk = await resTools.json();
+
+      // LOGIKA GAMBAR SEPERTI MEMANCING SECTION:
+      // Tambahkan path folder public (/img/produk/) di depan nama file
+      products.value = dataProduk.map((item) => ({
+        ...item,
+        image_url: item.image_url
+          ? `/img/produk/${item.image_url}` // Path ke folder public
+          : "https://via.placeholder.com/150?text=No+Image",
+      }));
     }
-  } catch (e) { console.error(e); }
-  finally { isLoadingTools.value = false; }
+  } catch (e) {
+    console.error(e);
+  } finally {
+    isLoadingTools.value = false;
+  }
 });
 
 // --- 2. CART LOGIC ---
@@ -172,7 +245,9 @@ function addToCart(product, tipe) {
   // Cek stok di frontend (stok asli dijaga backend juga)
   if (product.stok <= 0) return alert("Stok habis!");
 
-  const existing = cartItems.value.find(i => i.id === product.id && i.tipe === tipe);
+  const existing = cartItems.value.find(
+    (i) => i.id === product.id && i.tipe === tipe
+  );
 
   if (existing) {
     if (existing.jumlah < product.stok) existing.jumlah++;
@@ -183,9 +258,9 @@ function addToCart(product, tipe) {
       nama: product.nama,
       image_url: product.image_url,
       tipe: tipe,
-      harga: tipe === 'sewa' ? product.harga_sewa : product.harga_beli,
+      harga: tipe === "sewa" ? product.harga_sewa : product.harga_beli,
       jumlah: 1,
-      stok: product.stok
+      stok: product.stok,
     });
   }
 }
@@ -201,38 +276,40 @@ function clearCart() {
 }
 
 const grandTotal = computed(() => {
-  return cartItems.value.reduce((sum, item) => sum + (item.harga * item.jumlah), 0);
+  return cartItems.value.reduce(
+    (sum, item) => sum + item.harga * item.jumlah,
+    0
+  );
 });
 
 // --- 3. CHECKOUT ---
 async function handleCheckout() {
-  const token = localStorage.getItem('kailku_token');
+  const token = localStorage.getItem("kailku_token");
   isProcessing.value = true;
 
   try {
     const payload = {
-      items: cartItems.value.map(item => ({
+      items: cartItems.value.map((item) => ({
         id: item.id,
         tipe: item.tipe,
-        jumlah: item.jumlah
-      }))
+        jumlah: item.jumlah,
+      })),
     };
 
-    const res = await fetch('http://localhost:3000/orders', {
-      method: 'POST',
+    const res = await fetch("http://localhost:3000/orders", {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
     });
 
     if (!res.ok) throw new Error("Gagal membuat pesanan");
 
     alert("Pesanan Alat Berhasil! Silakan bayar di kasir.");
     cartItems.value = []; // Kosongkan cart
-    router.push('/payment'); // Pindah ke profil
-
+    router.push("/payment"); // Pindah ke profil
   } catch (err) {
     alert(err.message);
   } finally {
@@ -241,8 +318,14 @@ async function handleCheckout() {
 }
 
 // --- HELPERS ---
-const formatCurrency = (val) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(val);
-const formatDate = (d) => new Date(d).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+const formatCurrency = (val) =>
+  new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    minimumFractionDigits: 0,
+  }).format(val);
+const formatDate = (d) =>
+  new Date(d).toLocaleDateString("id-ID", { day: "numeric", month: "short" });
 </script>
 
 <style scoped>
@@ -334,7 +417,6 @@ const formatDate = (d) => new Date(d).toLocaleDateString('id-ID', { day: 'numeri
   font-size: 0.75rem;
   font-weight: 700;
 }
-
 
 /* --- STYLE PRODUK (Modifikasi dari punyamu) --- */
 .products-grid {
@@ -447,7 +529,6 @@ const formatDate = (d) => new Date(d).toLocaleDateString('id-ID', { day: 'numeri
   color: white;
   cursor: not-allowed;
 }
-
 
 /* --- CART PANEL --- */
 .cart-panel,
@@ -610,7 +691,6 @@ const formatDate = (d) => new Date(d).toLocaleDateString('id-ID', { day: 'numeri
 
 /* Responsive */
 @media (min-width: 768px) {
-
   .cart-panel,
   .footer-panel-empty {
     max-width: 500px;
