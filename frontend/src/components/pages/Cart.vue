@@ -224,14 +224,27 @@ onMounted(async () => {
     if (resTools.ok) {
       const dataProduk = await resTools.json();
 
-      // LOGIKA GAMBAR SEPERTI MEMANCING SECTION:
-      // Tambahkan path folder public (/img/produk/) di depan nama file
-      products.value = dataProduk.map((item) => ({
-        ...item,
-        image_url: item.image_url
-          ? `/img/produk/${item.image_url}` // Path ke folder public
-          : "https://via.placeholder.com/150?text=No+Image",
-      }));
+      // --- PERBAIKAN LOGIKA GAMBAR DI SINI ---
+      products.value = dataProduk.map((item) => {
+        let finalImage;
+
+        if (item.image_url) {
+          // Cek apakah ini link online (dimulai dengan http)
+          if (item.image_url.startsWith("http")) {
+            finalImage = item.image_url;
+          } else {
+            // Jika bukan, berarti file lokal di folder public
+            finalImage = `/img/produk/${item.image_url}`;
+          }
+        } else {
+          finalImage = "https://via.placeholder.com/150?text=No+Image";
+        }
+
+        return {
+          ...item,
+          image_url: finalImage, // Gunakan variabel yang sudah dicek
+        };
+      });
     }
   } catch (e) {
     console.error(e);
