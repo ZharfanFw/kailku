@@ -1,22 +1,22 @@
 // backend/routes/tempat.js
 
 /**
- * Mendefinisikan rute untuk modul Tempat Pemancingan (Venues).
- * Modul ini menangani pengambilan data lokasi pemancingan (Katalog).
+ * Modul Routes untuk Tempat Pemancingan (Venues).
+ * Menangani: Pengambilan daftar tempat dan detail informasi tempat mancing.
  */
 async function tempatRoutes(fastify, options) {
   // ==================================================
   // 1. Endpoint: Ambil Seluruh Tempat Mancing
   // Method: GET
   // URL Akses: http://localhost:3000/tempat_mancing/
-  // Deskripsi: Mengambil daftar semua tempat pemancingan yang tersedia.
+  // Deskripsi: Mengambil daftar semua tempat pemancingan yang tersedia di database.
   // ==================================================
   fastify.get("/", async (request, reply) => {
     let connection;
     try {
       connection = await fastify.mysql.getConnection();
 
-      // Eksekusi query untuk mengambil semua data
+      // Eksekusi query untuk mengambil semua data dari tabel 'tempat_mancing'
       const [rows, fields] = await connection.query(
         "SELECT * FROM tempat_mancing",
       );
@@ -36,16 +36,16 @@ async function tempatRoutes(fastify, options) {
   // 2. Endpoint: Ambil Detail Tempat Spesifik
   // Method: GET
   // URL Akses: http://localhost:3000/tempat_mancing/:id
-  // Deskripsi: Mengambil detail satu tempat pemancingan berdasarkan ID.
+  // Deskripsi: Mengambil detail lengkap satu tempat pemancingan berdasarkan ID.
   // ==================================================
   fastify.get("/:id", async (request, reply) => {
-    const id = request.params.id;
+    const id = request.params.id; // Ambil ID dari URL
 
     let connection;
     try {
       connection = await fastify.mysql.getConnection();
 
-      // Query dengan parameter ID (aman dari SQL Injection)
+      // Query dengan parameter ID (menggunakan '?' untuk mencegah SQL Injection)
       const [rows, fields] = await connection.query(
         "SELECT * FROM tempat_mancing WHERE id = ?",
         [id],
@@ -53,14 +53,14 @@ async function tempatRoutes(fastify, options) {
 
       connection.release();
 
-      // Validasi: Jika data tidak ditemukan
+      // Validasi: Jika data tidak ditemukan (array kosong)
       if (rows.length === 0) {
         return reply
           .status(404)
           .send({ message: "Tempat mancing tidak ditemukan" });
       }
 
-      // Mengembalikan objek data pertama
+      // Mengembalikan objek data pertama (karena ID unik)
       return rows[0];
     } catch (err) {
       if (connection) connection.release();

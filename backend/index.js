@@ -2,11 +2,11 @@
 
 // 1. LOAD ENVIRONMENT VARIABLES
 // Memuat variabel rahasia dari file .env ke dalam process.env
-// Ini wajib ditaruh paling atas agar konfigurasi terbaca sebelum kode lain jalan.
+// Wajib paling atas agar konfigurasi terbaca sebelum kode lain jalan.
 require("dotenv").config();
 
 // 2. INISIALISASI FRAMEWORK
-// Membuat instance aplikasi Fastify dengan logger aktif untuk melihat log request/response di terminal.
+// Membuat instance aplikasi Fastify dengan logger aktif.
 const fastify = require("fastify")({ logger: true });
 const jwt = require("@fastify/jwt");
 
@@ -15,16 +15,14 @@ const jwt = require("@fastify/jwt");
 // ==================================================
 
 // A. CORS (Cross-Origin Resource Sharing)
-// Mengizinkan Frontend (Vue.js) yang berjalan di port berbeda (misal 5173)
-// untuk mengakses Backend ini (port 3000). Tanpa ini, browser akan memblokir akses.
+// Mengizinkan Frontend (Vue.js) mengakses Backend ini.
 fastify.register(require("@fastify/cors"), {
-  origin: "*",
+  origin: "*", // Izinkan semua origin (untuk development)
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
 });
 
 // B. DATABASE (MySQL)
-// Mengatur koneksi ke database menggunakan kredensial dari file .env.
-// 'promise: true' memungkinkan kita menggunakan async/await saat query database.
+// Mengatur koneksi ke database menggunakan kredensial dari .env
 fastify.register(require("@fastify/mysql"), {
   promise: true,
   host: process.env.DB_HOST,
@@ -34,22 +32,20 @@ fastify.register(require("@fastify/mysql"), {
 });
 
 // C. JWT (JSON Web Token)
-// Mengatur kunci rahasia untuk menandatangani dan memverifikasi token login.
+// Mengatur kunci rahasia untuk token login.
 fastify.register(jwt, { secret: process.env.JWT_SECRET });
 
 // ==================================================
 // 4. DECORATOR (MIDDLEWARE GLOBAL)
 // ==================================================
 
-// Menambahkan fungsi 'authenticate' ke instance Fastify.
-// Fungsi ini bertindak sebagai "Satpam" yang bisa dipanggil di rute manapun
-// untuk memastikan pengguna memiliki token yang valid sebelum mengakses endpoint.
+// Fungsi 'authenticate' sebagai "Satpam" rute.
+// Bisa dipanggil di rute manapun dengan { preHandler: [fastify.authenticate] }
 fastify.decorate("authenticate", async function(request, reply) {
   try {
-    // Memverifikasi token yang dikirim di header Authorization
+    // Verifikasi token di header Authorization: Bearer <token>
     await request.jwtVerify();
   } catch (err) {
-    // Jika token tidak valid atau kadaluarsa, kirim error ke user
     reply.send(err);
   }
 });
@@ -58,29 +54,29 @@ fastify.decorate("authenticate", async function(request, reply) {
 // 5. REGISTER ROUTES (DAFTAR DEPARTEMEN)
 // ==================================================
 // Mendaftarkan file-file rute modular dari folder 'routes'.
-// Setiap file menangani fitur spesifik dengan awalan URL (prefix) masing-masing.
 
-// Menangani Login, Register, Profile -> URL: /auth/...
+// Auth: Login, Register, Profil -> /auth/...
 fastify.register(require("./routes/auth"), { prefix: "/auth" });
 
-// Menangani Data Tempat Mancing -> URL: /tempat_mancing/...
+// Tempat: Data Lokasi Mancing -> /tempat_mancing/...
 fastify.register(require("./routes/tempat"), { prefix: "/tempat_mancing" });
 
-// Menangani Data Alat Pancing -> URL: /alat_pancing/...
+// Alat: Katalog Alat Pancing -> /alat_pancing/...
 fastify.register(require("./routes/alat"), { prefix: "/alat_pancing" });
 
-// Menangani Transaksi Booking -> URL: /bookings/...
+// Booking: Sewa Tempat -> /bookings/...
 fastify.register(require("./routes/bookings"), { prefix: "/bookings" });
 
-// Menangani Transaksi Order Alat -> URL: /orders/...
+// Order: Sewa/Beli Alat -> /orders/...
 fastify.register(require("./routes/orders"), { prefix: "/orders" });
 
-// Menangani Review Tempat -> URL: /reviews/...
+// Review: Ulasan Tempat -> /reviews/...
 fastify.register(require("./routes/reviews"), { prefix: "/reviews" });
 
-// Menangani Confirmation Payment -> URL: /payment/...
+// Payment: Transaksi Pembayaran -> /payment/...
 fastify.register(require("./routes/payment"), { prefix: "/payment" });
 
+// Content: Konten Statis (Tips, Lomba) -> /content/...
 fastify.register(require("./routes/content"), { prefix: "/content" });
 
 // ==================================================
@@ -88,11 +84,13 @@ fastify.register(require("./routes/content"), { prefix: "/content" });
 // ==================================================
 const start = async () => {
   try {
-    // Menjalankan server di port 3000 (atau sesuai setting hosting nanti)
-    await fastify.listen({ port: 3000 });
-    console.log("Server backend berjalan di http://localhost:3000");
+    // Gunakan process.env.PORT jika ada (untuk deploy), default 3000
+    // Host '0.0.0.0' penting agar bisa diakses dari network lain (Docker/LAN)
+    const port = process.env.PORT || 3000;
+    await fastify.listen({ port: port, host: "0.0.0.0" });
+
+    console.log(`Server backend berjalan di http://localhost:${port}`);
   } catch (err) {
-    // Jika server gagal start, catat errornya dan hentikan proses
     fastify.log.error(err);
     process.exit(1);
   }
