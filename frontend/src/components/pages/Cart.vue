@@ -26,9 +26,20 @@
 
     <h2 class="section-title">🎣 Sewa / Beli Alat Pancing</h2>
 
-    <div v-if="isLoadingTools" class="loading-state">
+    <div v-if="bookings.length === 0" class="empty-tools-msg">
+      <p>
+        ⚠️ Silakan <strong>Booking Tempat</strong> terlebih dahulu untuk melihat
+        alat pancing yang tersedia di lokasi tersebut.
+      </p>
+    </div>
+
+    <div v-else-if="isLoadingTools" class="loading-state">
       <div class="spinner"></div>
-      Memuat alat pancing...
+      Memuat alat pancing sesuai lokasimu...
+    </div>
+
+    <div v-else-if="products.length === 0" class="empty-state">
+      <p>Tidak ada alat pancing tersedia untuk lokasi yang Anda pilih.</p>
     </div>
 
     <div v-else class="products-grid">
@@ -39,12 +50,15 @@
             :alt="product.nama"
             class="product-image"
           />
-
           <span class="product-badge">{{ product.kategori }}</span>
         </div>
 
         <div class="product-info">
           <h3 class="product-name">{{ product.nama }}</h3>
+
+          <p class="product-place-info" v-if="getPlaceName(product.tempat_id)">
+            📍 {{ getPlaceName(product.tempat_id) }}
+          </p>
 
           <p :class="['product-stock', { 'out-of-stock': product.stok === 0 }]">
             Stok: {{ product.stok > 0 ? product.stok : "Habis" }}
@@ -104,7 +118,6 @@
               :src="item.image_url || placeholderImg"
               class="cart-item-image"
             />
-
             <div class="cart-item-info">
               <h4 class="cart-item-name">
                 {{ item.nama }}
@@ -121,7 +134,6 @@
                 {{ formatCurrency(item.harga) }} x {{ item.jumlah }}
               </p>
             </div>
-
             <div class="cart-item-quantity">
               <button
                 class="quantity-btn"
@@ -138,11 +150,9 @@
                 +
               </button>
             </div>
-
             <p class="cart-item-price">
               {{ formatCurrency(item.harga * item.jumlah) }}
             </p>
-
             <button class="remove-item-button" @click="removeItem(index)">
               ✕
             </button>
@@ -187,14 +197,14 @@ import { useRouter } from "vue-router";
 const router = useRouter();
 const placeholderImg = "https://via.placeholder.com/150?text=Alat";
 
-// --- STATE ---
+// State
 const bookings = ref([]);
 const products = ref([]);
 const cartItems = ref([]);
-const isLoadingTools = ref(true);
+const isLoadingTools = ref(false); // Default harus FALSE
 const isProcessing = ref(false);
 
-// --- 1. FETCH DATA ---
+// --- 1. Fetch Data ---
 onMounted(async () => {
   const token = localStorage.getItem("kailku_token");
   if (!token) {
@@ -203,65 +213,108 @@ onMounted(async () => {
     return;
   }
 
-  // A. Fetch Booking (Tiket)
   try {
+    console.log("🚀 Memulai proses load data...");
+
     const resBook = await fetch("http://localhost:3000/bookings/my", {
       headers: { Authorization: `Bearer ${token}` },
     });
+
     if (resBook.ok) {
       const data = await resBook.json();
-      // Ambil booking yang statusnya pending (baru dibuat)
-      // Batasi 5 terakhir biar ga penuh
-      bookings.value = data.filter((b) => b.status === "pending").slice(0, 5);
+      bookings.value = data.filter((b) => b.status === "pending");
+
+      console.log("📋 Total booking ditemukan:", data.length);
+      console.log("✅ Booking pending:", bookings.value.length);
+      console.log(
+        "📍 Tempat ID dari booking:",
+        bookings.value.map((b) => b.tempat_id)
+      );
+
+      if (bookings.value.length > 0) {
+        await fetchToolsByLocation();
+      } else {
+        console.warn("⚠️ Tidak ada booking pending");
+        products.value = [];
+      }
+    } else {
+      console.error("❌ Gagal fetch booking. Status:", resBook.status);
     }
-  } catch (e) {
-    console.error(e);
-  }
-
-  // B. Fetch Alat Pancing (Produk)
-  try {
-    const resTools = await fetch("http://localhost:3000/alat_pancing");
-    if (resTools.ok) {
-      const dataProduk = await resTools.json();
-
-      // --- PERBAIKAN LOGIKA GAMBAR DI SINI ---
-      products.value = dataProduk.map((item) => {
-        let finalImage;
-
-        if (item.image_url) {
-          // Cek apakah ini link online (dimulai dengan http)
-          if (item.image_url.startsWith("http")) {
-            finalImage = item.image_url;
-          } else {
-            // Jika bukan, berarti file lokal di folder public
-            finalImage = `/img/produk/${item.image_url}`;
-          }
-        } else {
-          finalImage = "https://via.placeholder.com/150?text=No+Image";
-        }
-
-        return {
-          ...item,
-          image_url: finalImage, // Gunakan variabel yang sudah dicek
-        };
-      });
-    }
-  } catch (e) {
-    console.error(e);
-  } finally {
-    isLoadingTools.value = false;
+  } catch (error) {
+    console.error("❌ Error di onMounted:", error);
   }
 });
 
-// --- 2. CART LOGIC ---
-function addToCart(product, tipe) {
-  // Cek stok di frontend (stok asli dijaga backend juga)
-  if (product.stok <= 0) return alert("Stok habis!");
+// --- 2. Fetch Alat Sesuai Lokasi ---
+async function fetchToolsByLocation() {
+  isLoadingTools.value = true;
+  console.log("🔍 Memulai fetch alat pancing...");
 
+  try {
+    // ✅ AMBIL HANYA BOOKING PERTAMA/TERAKHIR (bukan semua booking)
+    if (bookings.value.length === 0) {
+      products.value = [];
+      return;
+    }
+
+    // Ambil tempat_id dari booking terbaru saja
+    const latestBooking = bookings.value[0]; // atau bookings.value[bookings.value.length - 1]
+    const tempatId = latestBooking.tempat_id;
+
+    console.log("📍 Menampilkan alat dari tempat_id:", tempatId);
+    console.log("📍 Nama tempat:", latestBooking.nama_tempat);
+
+    const url = `http://localhost:3000/alat_pancing?tempat_id=${tempatId}`;
+    console.log("🌐 Fetching dari:", url);
+
+    const resTools = await fetch(url);
+
+    if (!resTools.ok) {
+      throw new Error(`HTTP error! status: ${resTools.status}`);
+    }
+
+    const dataProduk = await resTools.json();
+    console.log("✅ Data alat diterima:", dataProduk.length, "item");
+
+    // Mapping gambar
+    products.value = dataProduk.map((item) => {
+      let finalImage = "https://via.placeholder.com/150?text=No+Image";
+
+      if (item.image_url) {
+        if (item.image_url.startsWith("http")) {
+          finalImage = item.image_url;
+        } else {
+          finalImage = `/img/produk/${item.image_url}`;
+        }
+      }
+
+      return {
+        ...item,
+        image_url: finalImage,
+      };
+    });
+
+    console.log("🎣 Total produk dari tempat ini:", products.value.length);
+  } catch (error) {
+    console.error("❌ Error saat fetch alat:", error);
+    products.value = [];
+    alert("Gagal memuat alat pancing. Silakan coba lagi.");
+  } finally {
+    isLoadingTools.value = false;
+  }
+}
+
+function getPlaceName(tempatId) {
+  const booking = bookings.value.find((b) => b.tempat_id === tempatId);
+  return booking ? booking.nama_tempat : "Mitra KailKu";
+}
+
+// --- 3. Cart Logic (Standar) ---
+function addToCart(product, tipe) {
+  if (product.stok <= 0) return alert("Stok habis!");
   const existing = cartItems.value.find(
     (i) => i.id === product.id && i.tipe === tipe
   );
-
   if (existing) {
     if (existing.jumlah < product.stok) existing.jumlah++;
     else alert("Stok tidak cukup!");
@@ -283,32 +336,24 @@ function removeItem(index) {
 }
 
 function clearCart() {
-  if (confirm("Hapus semua alat dari keranjang?")) {
-    cartItems.value = [];
-  }
+  if (confirm("Hapus semua?")) cartItems.value = [];
 }
 
-const grandTotal = computed(() => {
-  return cartItems.value.reduce(
-    (sum, item) => sum + item.harga * item.jumlah,
-    0
-  );
-});
+const grandTotal = computed(() =>
+  cartItems.value.reduce((sum, i) => sum + i.harga * i.jumlah, 0)
+);
 
-// --- 3. CHECKOUT ---
 async function handleCheckout() {
   const token = localStorage.getItem("kailku_token");
   isProcessing.value = true;
-
   try {
     const payload = {
-      items: cartItems.value.map((item) => ({
-        id: item.id,
-        tipe: item.tipe,
-        jumlah: item.jumlah,
+      items: cartItems.value.map((i) => ({
+        id: i.id,
+        tipe: i.tipe,
+        jumlah: i.jumlah,
       })),
     };
-
     const res = await fetch("http://localhost:3000/orders", {
       method: "POST",
       headers: {
@@ -317,12 +362,10 @@ async function handleCheckout() {
       },
       body: JSON.stringify(payload),
     });
-
-    if (!res.ok) throw new Error("Gagal membuat pesanan");
-
-    alert("Pesanan Alat Berhasil! Silakan bayar di kasir.");
-    cartItems.value = []; // Kosongkan cart
-    router.push("/payment"); // Pindah ke profil
+    if (!res.ok) throw new Error("Gagal checkout");
+    alert("Berhasil! Lanjut pembayaran.");
+    cartItems.value = [];
+    router.push("/payment");
   } catch (err) {
     alert(err.message);
   } finally {
@@ -330,7 +373,6 @@ async function handleCheckout() {
   }
 }
 
-// --- HELPERS ---
 const formatCurrency = (val) =>
   new Intl.NumberFormat("id-ID", {
     style: "currency",
@@ -342,8 +384,36 @@ const formatDate = (d) =>
 </script>
 
 <style scoped>
-/* Gunakan Style Asli Kamu + Sedikit Tambahan untuk Ticket */
+/* Gunakan CSS kamu yang sebelumnya, tidak ada perubahan style yang dibutuhkan */
+/* Tambahkan CSS ini untuk pesan error/empty */
+.empty-tools-msg {
+  text-align: center;
+  padding: 30px;
+  background: #fff3cd;
+  color: #856404;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  border: 1px solid #ffeeba;
+}
 
+.product-place-info {
+  font-size: 0.75rem;
+  color: #023e8a;
+  margin-bottom: 5px;
+  font-weight: 600;
+  background: #e0f2fe;
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.loading-state {
+  text-align: center;
+  padding: 40px;
+  color: #666;
+}
+
+/* ... SISA CSS SAMA DENGAN YANG KAMU PUNYA ... */
 :root {
   --color-primary: #03045e;
   --color-secondary: #48cae4;
@@ -362,7 +432,6 @@ const formatDate = (d) =>
   max-width: 1280px;
   margin: 0 auto;
   padding: 100px 20px 140px;
-  /* Padding bawah besar buat panel */
   background-color: #fafafa;
   min-height: 100vh;
 }
@@ -374,7 +443,6 @@ const formatDate = (d) =>
   font-weight: 800;
 }
 
-/* --- STYLE TIKET (Baru) --- */
 .booking-section {
   margin-bottom: 40px;
 }
@@ -431,7 +499,6 @@ const formatDate = (d) =>
   font-weight: 700;
 }
 
-/* --- STYLE PRODUK (Modifikasi dari punyamu) --- */
 .products-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
@@ -543,7 +610,6 @@ const formatDate = (d) =>
   cursor: not-allowed;
 }
 
-/* --- CART PANEL --- */
 .cart-panel,
 .footer-panel-empty {
   position: fixed;
@@ -691,7 +757,6 @@ const formatDate = (d) =>
   background: #ccc;
 }
 
-/* Animation */
 .slide-up-enter-active,
 .slide-up-leave-active {
   transition: transform 0.3s ease;
@@ -702,7 +767,6 @@ const formatDate = (d) =>
   transform: translateY(100%);
 }
 
-/* Responsive */
 @media (min-width: 768px) {
   .cart-panel,
   .footer-panel-empty {
