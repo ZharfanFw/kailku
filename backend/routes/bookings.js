@@ -1,27 +1,33 @@
 // backend/routes/bookings.js
 
 /**
- * Mendefinisikan rute untuk modul Booking (Pemesanan Tempat).
+ * Modul Routes untuk Booking (Reservasi Tempat Mancing)
+ * Menangani: Pembuatan Booking, Cek Ketersediaan Kursi, Riwayat Booking, dan Pembatalan.
  */
 async function bookingRoutes(fastify, options) {
   // --- Helper: Hitung Jam Selesai ---
+  // Fungsi kecil untuk menjumlahkan Jam Mulai + Durasi
+  // Contoh: "10:00" + 2 jam = "12:00"
   function calculateEndTime(startTime, duration) {
     if (!startTime || !duration) return "00:00:00";
     const [hours, minutes] = startTime.split(":").map(Number);
     const endHours = hours + Number(duration);
+    // Format output HH:MM (pad dengan 0 jika satu digit)
     return `${String(endHours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
   }
 
   // ==================================================
-  // 1. Endpoint: Buat Booking Baru (LENGKAP DENGAN JAM)
+  // 1. Endpoint: Buat Booking Baru (LENGKAP)
+  // Method: POST
+  // URL: http://localhost:3000/bookings/
   // ==================================================
   fastify.post(
     "/",
     {
-      preHandler: [fastify.authenticate],
+      preHandler: [fastify.authenticate], // Wajib Login
     },
     async (request, reply) => {
-      // Ambil semua data dari Frontend
+      // Ambil data dari Frontend
       const { tempat_id, tanggal_booking, no_kursi, start_time, duration } =
         request.body;
       const user_id = request.user.id;
@@ -39,13 +45,15 @@ async function bookingRoutes(fastify, options) {
           .send({ message: "Data booking tidak lengkap (Jam/Durasi/Kursi)" });
       }
 
-      // Hitung jam selesai otomatis
+      // Hitung jam selesai secara otomatis di backend
       const end_time = calculateEndTime(start_time, duration);
 
       let connection;
       try {
         connection = await fastify.mysql.getConnection();
 
+        // LANGKAH 1: AMBIL HARGA TEMPAT DULU
+        // Kita tidak percaya harga dari frontend, ambil langsung dari database master.
         const [tempatRows] = await connection.query(
           "SELECT harga_per_jam FROM tempat_mancing WHERE id = ?",
           [tempat_id],
@@ -56,10 +64,13 @@ async function bookingRoutes(fastify, options) {
           return reply.status(404).send({ message: "Tempat tidak ditemukan" });
         }
 
+        // Hitung Total Harga (Harga per Jam x Durasi)
         const hargaPerJam = Number(tempatRows[0].harga_per_jam);
         const totalHarga = hargaPerJam * duration;
 
-        // Cek Bentrok Terakhir (Safety Net - Biar ga tabrakan pas submit barengan)
+        // LANGKAH 2: CEK BENTROK (Safety Net)
+        // Pastikan tidak ada booking lain di kursi yang sama pada jam yang beririsan.
+        // Logika Bentrok: (Jam Mulai Baru < Jam Selesai Lama) DAN (Jam Selesai Baru > Jam Mulai Lama)
         const [existing] = await connection.query(
           `SELECT id FROM bookings 
              WHERE tempat_id = ? AND no_kursi = ? AND tanggal_booking = ?
@@ -74,7 +85,7 @@ async function bookingRoutes(fastify, options) {
           });
         }
 
-        // INSERT LENGKAP (Dengan start_time & end_time)
+        // LANGKAH 3: INSERT DATA (Status awal 'pending')
         const [result] = await connection.query(
           "INSERT INTO bookings (user_id, tempat_id, no_kursi, tanggal_booking, start_time, end_time, total_harga, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')",
           [
@@ -92,6 +103,11 @@ async function bookingRoutes(fastify, options) {
 
         return reply.status(201).send({
           id: result.insertId,
+          user_id,
+          tempat_id,
+          no_kursi,
+          tanggal_booking,
+          totalHarga,
         });
       } catch (err) {
         if (connection) connection.release();
@@ -103,6 +119,8 @@ async function bookingRoutes(fastify, options) {
 
   // ==================================================
   // 2. Endpoint: Riwayat Booking Saya
+  // Method: GET
+  // URL: http://localhost:3000/bookings/my
   // ==================================================
   fastify.get(
     "/my",
@@ -114,6 +132,7 @@ async function bookingRoutes(fastify, options) {
       let connection;
       try {
         connection = await fastify.mysql.getConnection();
+        // Menggunakan JOIN untuk mengambil Nama Tempat dan Lokasi sekaligus
         const [rows] = await connection.query(
           `SELECT
             b.*,
@@ -137,6 +156,8 @@ async function bookingRoutes(fastify, options) {
 
   // ==================================================
   // 3. Endpoint: Batalkan Booking
+  // Method: DELETE
+  // URL: http://localhost:3000/bookings/my/:id
   // ==================================================
   fastify.delete(
     "/my/:id",
@@ -149,6 +170,7 @@ async function bookingRoutes(fastify, options) {
       let connection;
       try {
         connection = await fastify.mysql.getConnection();
+        // Menghapus hanya jika ID Booking cocok DAN User ID cocok (Security)
         const [results] = await connection.query(
           "DELETE FROM bookings WHERE id = ? AND user_id = ?",
           [booking_id, user_id],
@@ -170,10 +192,12 @@ async function bookingRoutes(fastify, options) {
   );
 
   // ==================================================
-  // 4. Endpoint: Cek Kursi Sibuk (Global Filter)
+  // 4. Endpoint: Cek Kursi Sibuk (Global Filter / Peta Warna Merah)
+  // Method: GET
+  // URL: /bookings/check-seats?tempat_id=1&tanggal=...&start=...&durasi=...
   // ==================================================
   fastify.get("/check-seats", async (request, reply) => {
-    // Frontend kirim 'tanggal' (bukan tanggal_booking), kita mapping di query SQL
+    // Frontend mengirim parameter lewat Query String
     const { tempat_id, tanggal, start, durasi } = request.query;
 
     if (!tempat_id || !tanggal) return { bookedSeats: [] };
@@ -182,19 +206,20 @@ async function bookingRoutes(fastify, options) {
     try {
       connection = await fastify.mysql.getConnection();
 
-      // Base Query
+      // Query Dasar: Ambil semua kursi yang dibooking di tanggal tersebut
       let query =
         "SELECT no_kursi FROM bookings WHERE tempat_id = ? AND tanggal_booking = ?";
-      const params = [tempat_id, tanggal]; // Pakai 'tanggal' dari query string
+      const params = [tempat_id, tanggal];
 
-      // Filter bentrok jam (jika parameter jam dikirim)
+      // Jika User sudah memilih Jam (Filter Lebih Spesifik):
+      // Cek hanya kursi yang BENTROK jamnya dengan pilihan user.
       if (start && durasi) {
         const [h, m] = start.split(":").map(Number);
         const endH = h + Number(durasi);
         const reqStart = start;
-        const reqEnd = calculateEndTime(start, durasi);
+        const reqEnd = `${String(endH).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 
-        // Logika: (StartDB < RequestEnd) AND (EndDB > RequestStart)
+        // Logika Bentrok: (StartDB < RequestEnd) AND (EndDB > RequestStart)
         query += " AND (start_time < ? AND end_time > ?)";
         params.push(reqEnd, reqStart);
       }
@@ -202,6 +227,7 @@ async function bookingRoutes(fastify, options) {
       const [rows] = await connection.query(query, params);
       connection.release();
 
+      // Kembalikan Array nomor kursi yang sibuk [1, 5, 12]
       return { bookedSeats: rows.map((r) => r.no_kursi) };
     } catch (err) {
       if (connection) connection.release();
@@ -211,6 +237,9 @@ async function bookingRoutes(fastify, options) {
 
   // ==================================================
   // 5. Endpoint: Ambil Jadwal Spesifik (Smart Dropdown)
+  // Method: GET
+  // URL: /bookings/schedule?tempat_id=1&no_kursi=10&tanggal=...
+  // Deskripsi: Mengambil daftar jam yang SUDAH TERISI di kursi tertentu.
   // ==================================================
   fastify.get("/schedule", async (request, reply) => {
     const { tempat_id, no_kursi, tanggal } = request.query;
@@ -228,6 +257,7 @@ async function bookingRoutes(fastify, options) {
       connection.release();
 
       // Balikin array jadwal: [{start_time: '10:00', end_time: '12:00'}, ...]
+      // Frontend akan menggunakan ini untuk mendisable jam di dropdown.
       return rows;
     } catch (err) {
       if (connection) connection.release();
