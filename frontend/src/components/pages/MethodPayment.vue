@@ -110,7 +110,7 @@ const paymentMethods = ref([
   { id: "other-bank", name: "Bank lainnya", type: "transfer", description: "Menerima transfer dari semua bank", icon: new URL("@/assets/img/method-payment/banklainnya.avif", import.meta.url).href, disabled: false },
 
   // COD
-  { id: "cod-jne", name: "Bayar di Tempat (COD)", type: "cod", description: "Bayar saat barang diterima", icon: new URL("@/assets/img/method-payment/cod.avif", import.meta.url).href, disabled: false },
+  { id: "cod", name: "Bayar di Tempat (COD)", type: "cod", description: "Bayar saat barang diterima", icon: new URL("@/assets/img/method-payment/cod.avif", import.meta.url).href, disabled: false },
 
   // QRIS
   { id: "qris", name: "QRIS", type: "qris", description: "Scan QR untuk pembayaran instant", icon: new URL("@/assets/img/method-payment/qris.avif", import.meta.url).href, badge: "Instant", disabled: false },

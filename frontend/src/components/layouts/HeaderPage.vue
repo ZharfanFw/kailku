@@ -10,8 +10,8 @@
       <div class="nav-middle">
         <router-link to="/">Beranda</router-link>
         <router-link to="/memancing-section">Tempat Pemancingan</router-link>
-        <router-link to="/#tips-section">Tips & Trick</router-link>
-        <router-link to="/#lomba-section">Lomba</router-link>
+        <a href="#tips-section">Tips & Trick</a>
+        <a href="#lomba-section">Lomba</a>
       </div>
 
       <div class="nav-right">
@@ -87,7 +87,7 @@ function toggleMenu() {
 }
 
 function goToProfileMobile() {
-  router.push('/user-profile');
+  router.push('/profil');
   toggleMenu();
 }
 
@@ -353,6 +353,18 @@ header {
 .mobile-menu a:hover {
   background-color: #f0f9ff;
   color: #023e8a;
+}
+
+.mobile-menu .signup-btn {
+  color: #ffffff !important;
+  /* Paksa jadi putih */
+  background-color: #023e8a;
+  /* Pastikan background biru */
+}
+
+/* Opsional: Biar tombol Masuk warnanya tetap biru (bukan hitam) */
+.mobile-menu .login-btn {
+  color: #023e8a !important;
 }
 
 /* Mobile User Section */
