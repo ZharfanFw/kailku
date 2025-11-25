@@ -13,32 +13,17 @@
             mudah dan cepat.
           </p>
 
+          <!-- Search Bar -->
           <div class="search-wrapper">
             <div class="search-box">
-              <font-awesome-icon
-                icon="fa-solid fa-magnifying-glass"
-                class="search-icon"
-              />
-              <input
-                type="text"
-                placeholder="Cari nama tempat atau kota..."
-                class="search-field"
-                v-model="searchQuery"
-                @focus="showOverlay = true"
-                @blur="handleBlur"
-              />
+              <font-awesome-icon icon="fa-solid fa-magnifying-glass" class="search-icon" />
+              <input type="text" placeholder="Cari nama tempat atau kota..." class="search-field" v-model="searchQuery"
+                @focus="showOverlay = true" @blur="handleBlur" />
 
               <transition name="fade">
-                <div
-                  v-if="showOverlay && filteredList.length > 0"
-                  class="search-dropdown"
-                >
-                  <div
-                    v-for="item in filteredList.slice(0, 4)"
-                    :key="item.id"
-                    class="dropdown-item"
-                    @mousedown="goToDetail(item.id)"
-                  >
+                <div v-if="showOverlay && filteredList.length > 0" class="search-dropdown">
+                  <div v-for="item in filteredList.slice(0, 4)" :key="item.id" class="dropdown-item"
+                    @mousedown="goToDetail(item.id)">
                     <img :src="item.gambar" class="thumb" />
                     <div class="item-info">
                       <strong>{{ item.nama }}</strong>
@@ -63,12 +48,7 @@
         <div v-if="isLoading" class="loading-text">Memuat tempat...</div>
 
         <div v-else class="grid-3">
-          <div
-            v-for="place in tempatList.slice(0, 3)"
-            :key="place.id"
-            class="card"
-            @click="goToDetail(place.id)"
-          >
+          <div v-for="place in tempatList.slice(0, 3)" :key="place.id" class="card" @click="goToDetail(place.id)">
             <div class="card-img-wrap">
               <img :src="place.gambar" :alt="place.nama" />
               <span class="badge">{{ place.kota }}</span>
@@ -76,10 +56,7 @@
             <div class="card-body">
               <h3>{{ place.nama }}</h3>
               <div class="rating">
-                <font-awesome-icon
-                  icon="fa-solid fa-star"
-                  style="color: #ffb703"
-                />
+                <font-awesome-icon icon="fa-solid fa-star" style="color: #ffb703" />
                 {{ place.rating }} / 5.0
               </div>
               <p class="location">
@@ -98,18 +75,14 @@
       </div>
     </section>
 
-    <section class="section-container bg-tips">
+    <section id="tips-section" class="section-container bg-tips">
       <div class="container">
         <div class="section-header">
           <h2>Tips & Trik Jitu</h2>
           <p>Tingkatkan skill memancingmu dengan panduan ahli</p>
         </div>
 
-        <Carousel
-          :items-to-show="carouselItemsToShow"
-          :wrap-around="true"
-          :autoplay="3000"
-        >
+        <Carousel :items-to-show="carouselItemsToShow" :wrap-around="true" :autoplay="3000">
           <Slide v-for="(tip, i) in tipsList" :key="i">
             <div class="tip-card-carousel">
               <div class="tip-img-box">
@@ -130,7 +103,7 @@
       </div>
     </section>
 
-    <section class="section-container">
+    <section id="lomba-section" class="section-container">
       <div class="container">
         <div class="section-header">
           <h2>Turnamen Mendatang</h2>
@@ -142,24 +115,14 @@
         </div>
 
         <div v-else class="lomba-grid">
-          <div
-            v-for="(lomba, index) in lombaList"
-            :key="lomba.id"
-            class="lomba-card-pro"
-          >
+          <div v-for="(lomba, index) in lombaList" :key="lomba.id" class="lomba-card-pro">
             <div class="lomba-header">
-              <img
-                :src="lomba.image_url"
-                :alt="lomba.nama_lomba"
-                class="lomba-img"
-              />
+              <img :src="lomba.image_url" :alt="lomba.nama_lomba" class="lomba-img" />
 
-              <span
-                :class="[
-                  'lomba-badge',
-                  index % 2 === 0 ? 'nasional' : 'regional',
-                ]"
-              >
+              <span :class="[
+                'lomba-badge',
+                index % 2 === 0 ? 'nasional' : 'regional',
+              ]">
                 {{ index % 2 === 0 ? "NASIONAL" : "REGIONAL" }}
               </span>
             </div>
@@ -487,11 +450,35 @@ const handleBlur = () => {
 }
 
 .dropdown-item .thumb {
-  width: 40px;
-  height: 40px;
-  border-radius: 6px;
+  width: 45px;
+  height: 45px;
+  border-radius: 8px;
   margin-right: 15px;
   object-fit: cover;
+  flex-shrink: 0;
+}
+
+.item-info {
+  display: flex;
+  flex-direction: column;
+  /* PENTING: Biar Nama & Kota jadi Atas-Bawah */
+  justify-content: center;
+  text-align: left;
+}
+
+.item-info strong {
+  display: block;
+  font-size: 0.95rem;
+  color: #023e8a;
+  margin-bottom: 2px;
+  /* Jarak Nama ke Kota */
+  line-height: 1.2;
+}
+
+.item-info small {
+  color: #6b7280;
+  font-size: 0.8rem;
+  font-weight: 500;
 }
 
 .fade-enter-active,

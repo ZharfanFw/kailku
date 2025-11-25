@@ -10,10 +10,8 @@
             <p class="loc">📍 {{ booking.lokasi_tempat }}</p>
             <div class="ticket-meta">
               <span>📅 {{ formatDate(booking.tanggal_booking) }}</span>
-              <span
-                >⏰ {{ booking.start_time.slice(0, 5) }} -
-                {{ booking.end_time.slice(0, 5) }}</span
-              >
+              <span>⏰ {{ booking.start_time.slice(0, 5) }} -
+                {{ booking.end_time.slice(0, 5) }}</span>
               <span>🪑 Kursi No. {{ booking.no_kursi || "Bebas" }}</span>
             </div>
           </div>
@@ -45,11 +43,7 @@
     <div v-else class="products-grid">
       <div v-for="product in products" :key="product.id" class="product-card">
         <div class="product-image-wrapper">
-          <img
-            :src="product.image_url || placeholderImg"
-            :alt="product.nama"
-            class="product-image"
-          />
+          <img :src="product.image_url || placeholderImg" :alt="product.nama" class="product-image" />
           <span class="product-badge">{{ product.kategori }}</span>
         </div>
 
@@ -66,29 +60,17 @@
 
           <div class="price-actions">
             <div v-if="product.harga_sewa" class="action-row">
-              <span class="price-text"
-                >{{ formatCurrency(product.harga_sewa) }}
-                <small>/sewa</small></span
-              >
-              <button
-                class="add-btn outline"
-                @click="addToCart(product, 'sewa')"
-                :disabled="product.stok === 0"
-              >
+              <span class="price-text">{{ formatCurrency(product.harga_sewa) }}
+                <small>/sewa</small></span>
+              <button class="add-btn outline" @click="addToCart(product, 'sewa')" :disabled="product.stok === 0">
                 + Sewa
               </button>
             </div>
 
             <div v-if="product.harga_beli" class="action-row">
-              <span class="price-text"
-                >{{ formatCurrency(product.harga_beli) }}
-                <small>/beli</small></span
-              >
-              <button
-                class="add-btn"
-                @click="addToCart(product, 'beli')"
-                :disabled="product.stok === 0"
-              >
+              <span class="price-text">{{ formatCurrency(product.harga_beli) }}
+                <small>/beli</small></span>
+              <button class="add-btn" @click="addToCart(product, 'beli')" :disabled="product.stok === 0">
                 + Beli
               </button>
             </div>
@@ -109,24 +91,15 @@
         </div>
 
         <div class="cart-items">
-          <div
-            v-for="(item, index) in cartItems"
-            :key="index"
-            class="cart-item"
-          >
-            <img
-              :src="item.image_url || placeholderImg"
-              class="cart-item-image"
-            />
+          <div v-for="(item, index) in cartItems" :key="index" class="cart-item">
+            <img :src="item.image_url || placeholderImg" class="cart-item-image" />
             <div class="cart-item-info">
               <h4 class="cart-item-name">
                 {{ item.nama }}
-                <span
-                  :class="[
-                    'cart-item-badge',
-                    item.tipe === 'beli' ? 'badge-beli' : 'badge-sewa',
-                  ]"
-                >
+                <span :class="[
+                  'cart-item-badge',
+                  item.tipe === 'beli' ? 'badge-beli' : 'badge-sewa',
+                ]">
                   {{ item.tipe === "beli" ? "Beli" : "Sewa" }}
                 </span>
               </h4>
@@ -135,18 +108,11 @@
               </p>
             </div>
             <div class="cart-item-quantity">
-              <button
-                class="quantity-btn"
-                @click="item.jumlah > 1 ? item.jumlah-- : removeItem(index)"
-              >
+              <button class="quantity-btn" @click="item.jumlah > 1 ? item.jumlah-- : removeItem(index)">
                 -
               </button>
               <span class="quantity-value">{{ item.jumlah }}</span>
-              <button
-                class="quantity-btn"
-                @click="item.jumlah++"
-                :disabled="item.jumlah >= item.stok"
-              >
+              <button class="quantity-btn" @click="item.jumlah++" :disabled="item.jumlah >= item.stok">
                 +
               </button>
             </div>
@@ -164,21 +130,14 @@
             <span class="total-label">Total:</span>
             <span class="total-value">{{ formatCurrency(grandTotal) }}</span>
           </div>
-          <button
-            class="checkout-button"
-            @click="handleCheckout"
-            :disabled="isProcessing"
-          >
+          <button class="checkout-button" @click="handleCheckout" :disabled="isProcessing">
             {{ isProcessing ? "Memproses..." : "Konfirmasi Pesanan" }}
           </button>
         </div>
       </div>
     </transition>
 
-    <div
-      class="footer-panel-empty"
-      v-if="cartItems.length === 0 && bookings.length > 0"
-    >
+    <div class="footer-panel-empty" v-if="cartItems.length === 0 && bookings.length > 0">
       <div class="cart-total">
         <span>Total Booking:</span>
         <span class="total-value">Bayar di Kasir</span>
@@ -214,7 +173,7 @@ onMounted(async () => {
   }
 
   try {
-    console.log("🚀 Memulai proses load data...");
+    // console.log("🚀 Memulai proses load data...");
 
     const resBook = await fetch("http://localhost:3000/bookings/my", {
       headers: { Authorization: `Bearer ${token}` },
@@ -224,12 +183,12 @@ onMounted(async () => {
       const data = await resBook.json();
       bookings.value = data.filter((b) => b.status === "pending");
 
-      console.log("📋 Total booking ditemukan:", data.length);
-      console.log("✅ Booking pending:", bookings.value.length);
-      console.log(
-        "📍 Tempat ID dari booking:",
-        bookings.value.map((b) => b.tempat_id)
-      );
+      // console.log("📋 Total booking ditemukan:", data.length);
+      // console.log("✅ Booking pending:", bookings.value.length);
+      // console.log(
+      //   "📍 Tempat ID dari booking:",
+      //   bookings.value.map((b) => b.tempat_id)
+      // );
 
       if (bookings.value.length > 0) {
         await fetchToolsByLocation();
@@ -248,7 +207,7 @@ onMounted(async () => {
 // --- 2. Fetch Alat Sesuai Lokasi ---
 async function fetchToolsByLocation() {
   isLoadingTools.value = true;
-  console.log("🔍 Memulai fetch alat pancing...");
+  // console.log("🔍 Memulai fetch alat pancing...");
 
   try {
     // ✅ AMBIL HANYA BOOKING PERTAMA/TERAKHIR (bukan semua booking)
@@ -261,11 +220,11 @@ async function fetchToolsByLocation() {
     const latestBooking = bookings.value[0]; // atau bookings.value[bookings.value.length - 1]
     const tempatId = latestBooking.tempat_id;
 
-    console.log("📍 Menampilkan alat dari tempat_id:", tempatId);
-    console.log("📍 Nama tempat:", latestBooking.nama_tempat);
+    // console.log("📍 Menampilkan alat dari tempat_id:", tempatId);
+    // console.log("📍 Nama tempat:", latestBooking.nama_tempat);
 
     const url = `http://localhost:3000/alat_pancing?tempat_id=${tempatId}`;
-    console.log("🌐 Fetching dari:", url);
+    // console.log("🌐 Fetching dari:", url);
 
     const resTools = await fetch(url);
 
@@ -274,7 +233,7 @@ async function fetchToolsByLocation() {
     }
 
     const dataProduk = await resTools.json();
-    console.log("✅ Data alat diterima:", dataProduk.length, "item");
+    // console.log("✅ Data alat diterima:", dataProduk.length, "item");
 
     // Mapping gambar
     products.value = dataProduk.map((item) => {
@@ -294,7 +253,7 @@ async function fetchToolsByLocation() {
       };
     });
 
-    console.log("🎣 Total produk dari tempat ini:", products.value.length);
+    // console.log("🎣 Total produk dari tempat ini:", products.value.length);
   } catch (error) {
     console.error("❌ Error saat fetch alat:", error);
     products.value = [];
@@ -768,6 +727,7 @@ const formatDate = (d) =>
 }
 
 @media (min-width: 768px) {
+
   .cart-panel,
   .footer-panel-empty {
     max-width: 500px;

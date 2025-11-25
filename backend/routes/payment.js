@@ -21,30 +21,33 @@ async function paymentRoutes(fastify, options) {
 
         let dbMethod = "other";
 
+        const transferMethods = [
+          "bca",
+          "mandiri",
+          "bri",
+          "bni",
+          "cimb",
+          "permata",
+          "seabank",
+          "bsi",
+          "other-bank",
+        ];
+
         if (payment_method === "qris") {
           dbMethod = "qris";
-        } else if (payment_method && payment_method.includes("cod")) {
-          dbMethod = "cod"; // Handle 'cod-jne' jadi 'cod'
+        } else if (payment_method === "cod") {
+          dbMethod = "cod";
         } else {
-          // Asumsi sisanya transfer
-          // Cek apakah stringnya valid di database enum kalau mau strict,
-          // tapi untuk aman kita mapping manual yang umum:
-          if (["bca", "mandiri", "bri"].includes(payment_method)) {
-            dbMethod = `transfer_${payment_method}`;
-          } else {
-            // Bank lain (seabank, bsi, dll) masuk ke 'other' atau paksa format jika DB support
-            // Karena di SQL Dump enumnya terbatas, kita masukkan ke 'other'
-            // ATAU ubah kolom di DB jadi VARCHAR biar fleksibel.
-            // Sesuai SQL Dump kamu: enum('transfer_bca','transfer_mandiri','transfer_bri','qris','cod','other')
-            dbMethod = "other";
-          }
+          // Selain QRIS dan COD, kita anggap semuanya adalah TRANSFER
+          // Contoh: 'seabank' jadi 'transfer_seabank'
+          dbMethod = `transfer_${payment_method}`;
         }
 
         // INSERT
         const [res] = await connection.query(
           `INSERT INTO payments (user_id, metode_pembayaran, jumlah_bayar, status_pembayaran) 
          VALUES (?, ?, ?, 'menunggu_verifikasi')`,
-          [user_id, dbMethod, total_amount]
+          [user_id, dbMethod, total_amount],
         );
         const paymentId = res.insertId;
 
@@ -52,13 +55,13 @@ async function paymentRoutes(fastify, options) {
         if (booking_ids && booking_ids.length > 0) {
           await connection.query(
             "UPDATE bookings SET payment_id = ? WHERE id IN (?)",
-            [paymentId, booking_ids]
+            [paymentId, booking_ids],
           );
         }
         if (order_ids && order_ids.length > 0) {
           await connection.query(
             "UPDATE orders SET payment_id = ? WHERE id IN (?)",
-            [paymentId, order_ids]
+            [paymentId, order_ids],
           );
         }
 
@@ -73,7 +76,7 @@ async function paymentRoutes(fastify, options) {
         }
         reply.status(500).send(err);
       }
-    }
+    },
   );
 
   // 2. GET DETAIL
@@ -87,7 +90,7 @@ async function paymentRoutes(fastify, options) {
         connection = await fastify.mysql.getConnection();
         const [rows] = await connection.query(
           "SELECT * FROM payments WHERE id = ?",
-          [paymentId]
+          [paymentId],
         );
         connection.release();
         if (rows.length === 0)
@@ -96,7 +99,7 @@ async function paymentRoutes(fastify, options) {
       } catch (err) {
         reply.status(500).send(err);
       }
-    }
+    },
   );
 
   // 3. PAY (Simulasi Bayar Berhasil)
@@ -112,15 +115,15 @@ async function paymentRoutes(fastify, options) {
 
         await connection.query(
           "UPDATE payments SET status_pembayaran = 'berhasil' WHERE id = ?",
-          [paymentId]
+          [paymentId],
         );
         await connection.query(
           "UPDATE bookings SET status = 'paid' WHERE payment_id = ?",
-          [paymentId]
+          [paymentId],
         );
         await connection.query(
           "UPDATE orders SET status = 'paid' WHERE payment_id = ?",
-          [paymentId]
+          [paymentId],
         );
 
         await connection.commit();
@@ -130,7 +133,7 @@ async function paymentRoutes(fastify, options) {
         if (connection) await connection.rollback();
         reply.status(500).send(err);
       }
-    }
+    },
   );
 }
 

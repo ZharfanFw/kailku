@@ -18,12 +18,12 @@ import PaymentExecution from "../components/pages/PaymentExecution.vue"; // Nant
 
 const routes = [
   {
-    path: "/",
+    path: "/dev",
     name: "AllTampilan",
     component: AllTampilan,
   },
   {
-    path: "/home",
+    path: "/",
     name: "Welcome",
     component: Welcome,
   },

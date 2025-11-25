@@ -416,16 +416,19 @@ onMounted(() => fetchVenueInfo());
 </script>
 
 <style scoped>
-/* --- LAYOUT --- */
+/* --- LAYOUT UTAMA --- */
 .booking-page {
   display: flex;
+  flex-direction: column;
   max-width: 1200px;
   margin: 0 auto;
   padding: 100px 20px;
   gap: 30px;
+  background-color: #f8f9fa;
   min-height: 100vh;
 }
 
+/* Desktop Layout */
 @media (min-width: 992px) {
   .booking-page {
     flex-direction: row;
@@ -434,20 +437,29 @@ onMounted(() => fetchVenueInfo());
 
   .main-content {
     flex: 3;
+    /* Biar konten kiri bisa scroll independen dari sidebar */
+    min-width: 0;
   }
 
   .sidebar {
     flex: 1.3;
     position: sticky;
     top: 100px;
+    /* KUNCI SCROLL DESKTOP: Batasi tinggi sidebar setinggi layar */
+    height: calc(100vh - 140px);
+    display: flex;
+    flex-direction: column;
   }
 }
 
-/* --- BAGIAN KIRI --- */
+/* --- BAGIAN KIRI (DENAH) --- */
 .venue-header {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   margin-bottom: 20px;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 10px;
 }
 
 .badge-time {
@@ -459,49 +471,95 @@ onMounted(() => fetchVenueInfo());
   font-size: 0.85rem;
 }
 
-.global-filter {
-  background: white;
-  padding: 15px;
-  border-radius: 12px;
-  margin-bottom: 20px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+.badge-price {
+  background: #fff3cd;
+  color: #856404;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  margin-left: 10px;
 }
 
-.filter-header {
+.badge-loading {
+  color: #666;
+  font-style: italic;
   font-size: 0.9rem;
-  color: #333;
-  margin-bottom: 10px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
 }
 
-.filter-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+.global-filter {
+  /* display: grid; */
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 15px;
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 30px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
 }
 
 .filter-group label {
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   color: #666;
+  margin-bottom: 5px;
   font-weight: 600;
-  margin-bottom: 4px;
-  display: block;
 }
 
-.filter-group input,
-.filter-group select {
-  width: 100%;
-  padding: 8px;
+.filter-group select,
+.filter-group input {
+  padding: 10px;
   border: 1px solid #ddd;
-  border-radius: 6px;
+  border-radius: 8px;
+  outline: none;
+  font-size: 0.9rem;
+}
+
+.legend {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+  margin-bottom: 20px;
+  font-size: 0.85rem;
+  color: #555;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.box {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+}
+
+.box.available {
+  background: white;
+  border: 2px solid #2ecc71;
+}
+
+.box.unavailable {
+  background: #e0e0e0;
+  border: 2px solid #ccc;
+}
+
+.box.selected {
+  background: #023e8a;
+  border: 2px solid #023e8a;
 }
 
 .seating-area {
   background: white;
   padding: 30px;
   border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
   overflow-x: auto;
 }
 
@@ -516,7 +574,7 @@ onMounted(() => fetchVenueInfo());
 .seat-row,
 .seat-col {
   display: flex;
-  gap: 6px;
+  gap: 8px;
   justify-content: center;
 }
 
@@ -545,6 +603,8 @@ onMounted(() => fetchVenueInfo());
 .water {
   color: #00838f;
   font-weight: bold;
+  font-size: 1.2rem;
+  letter-spacing: 1px;
 }
 
 .seat {
@@ -575,35 +635,66 @@ onMounted(() => fetchVenueInfo());
   border: 2px solid #ccc;
   color: #999;
   cursor: not-allowed;
+  pointer-events: none;
 }
 
-.seat.is-selected {
+.seat.selected {
   background: #023e8a;
   border: 2px solid #023e8a;
   color: white;
 }
 
-/* --- BAGIAN KANAN (CART) --- */
+/* --- BAGIAN KANAN (SIDEBAR - SCROLL FIX) --- */
 .sidebar {
   background: white;
   padding: 20px;
   border-radius: 16px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  /* Default Mobile: Tinggi otomatis mengikuti konten */
+  height: auto;
 }
 
+/* Container List yang Bisa di-Scroll */
 .booking-list {
   display: flex;
   flex-direction: column;
   gap: 15px;
   margin: 20px 0;
-  max-height: 60vh;
+
+  /* KUNCI SCROLL MOBILE: Batasi tinggi list di HP */
+  max-height: 400px;
   overflow-y: auto;
+
+  padding-right: 5px;
+  /* Jarak biar scrollbar ga nempel */
+}
+
+/* Custom Scrollbar yang Cantik */
+.booking-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.booking-list::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.booking-list::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 3px;
+}
+
+.booking-list::-webkit-scrollbar-thumb:hover {
+  background: #999;
 }
 
 .booking-card {
   border: 1px solid #eee;
   border-radius: 10px;
   overflow: hidden;
+  background: #fff;
+  flex-shrink: 0;
+  /* Mencegah kartu gepeng */
 }
 
 .card-header {
@@ -648,10 +739,11 @@ onMounted(() => fetchVenueInfo());
 .form-group-sm input,
 .form-group-sm select {
   width: 100%;
-  padding: 6px;
+  padding: 8px;
   font-size: 0.9rem;
   border: 1px solid #ddd;
   border-radius: 4px;
+  background: #fff;
 }
 
 .price-calc {
@@ -667,9 +759,12 @@ onMounted(() => fetchVenueInfo());
   margin-top: 5px;
 }
 
+/* Bagian Bawah Sidebar (Tetap di Bawah) */
 .summary {
   border-top: 2px solid #eee;
   padding-top: 20px;
+  margin-top: auto;
+  /* Dorong ke paling bawah di mode flex */
 }
 
 .total-row {
@@ -682,6 +777,18 @@ onMounted(() => fetchVenueInfo());
 
 .total-val {
   color: #023e8a;
+}
+
+.btn-add-person {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 15px;
+  border: 1px dashed #023e8a;
+  background: #f0f9ff;
+  color: #023e8a;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
 }
 
 .btn-checkout {
@@ -697,26 +804,42 @@ onMounted(() => fetchVenueInfo());
 
 .btn-checkout:disabled {
   background: #ccc;
+  cursor: not-allowed;
 }
 
-/* Legend */
-.legend {
-  display: flex;
-  gap: 15px;
-  justify-content: center;
-  margin-bottom: 20px;
-  font-size: 0.8rem;
+.loading-state {
+  text-align: center;
+  padding: 40px;
+  color: #666;
 }
 
-.legend-item {
-  display: flex;
-  align-items: center;
-  gap: 5px;
+/* --- MODIFIKASI DESKTOP UNTUK SCROLL --- */
+@media (min-width: 992px) {
+  .booking-list {
+    /* Di Desktop, biarkan list mengambil sisa ruang yang ada */
+    flex: 1;
+    max-height: none;
+    /* Reset max-height mobile */
+    min-height: 0;
+    /* Fix untuk Firefox flex scroll */
+  }
 }
 
-.box {
-  width: 14px;
-  height: 14px;
-  border-radius: 2px;
+@media (max-width: 768px) {
+  .booking-page {
+    padding-top: 80px;
+    gap: 20px;
+  }
+
+  /* Kursi lebih kecil di HP biar muat */
+  .seat {
+    width: 30px;
+    height: 30px;
+    font-size: 0.7rem;
+  }
+
+  .layout-wrapper {
+    gap: 5px;
+  }
 }
 </style>

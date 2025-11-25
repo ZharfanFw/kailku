@@ -1,7 +1,9 @@
 <template>
   <div class="exec-container">
     <div class="exec-card">
-      <div class="timer">Selesaikan dalam 23:59:00</div>
+      <div class="timer" :class="{ 'expired': isExpired }">
+        {{ isExpired ? 'Waktu Habis' : `Selesaikan dalam ${formattedTime}` }}
+      </div>
 
       <div class="amount-box">
         <p>Total Pembayaran</p>
@@ -10,7 +12,6 @@
 
       <div v-if="isTransfer" class="method-details">
         <div class="bank-header">
-          <img :src="getBankLogo(paymentData.metode_pembayaran)" class="bank-logo" />
           <span>Transfer Bank {{ getBankName(paymentData.metode_pembayaran) }}</span>
         </div>
         <div class="va-box">
@@ -39,15 +40,15 @@
         <p>Siapkan uang tunai pas saat datang ke lokasi.</p>
       </div>
 
-      <button class="btn-finish" @click="finishPayment" :disabled="isProcessing">
-        {{ isProcessing ? 'Memverifikasi...' : 'Saya Sudah Bayar' }}
+      <button class="btn-finish" @click="finishPayment" :disabled="isProcessing || isExpired">
+        {{ isProcessing ? 'Memverifikasi...' : (isExpired ? 'Pembayaran Kadaluarsa' : 'Saya Sudah Bayar') }}
       </button>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 const route = useRoute();
@@ -56,13 +57,38 @@ const paymentId = route.params.id;
 
 const paymentData = ref({});
 const isProcessing = ref(false);
-// Simulasi VA Number (Gabungan Kode Bank + No HP user / Random)
 const virtualAccount = ref("8800" + Math.floor(1000000000 + Math.random() * 9000000000));
 
 const isTransfer = computed(() => paymentData.value.metode_pembayaran?.includes('transfer'));
 const isQRIS = computed(() => paymentData.value.metode_pembayaran === 'qris');
 
+// --- LOGIKA TIMER ---
+const timeLeft = ref(86400); // 1 Jam dalam detik (60 * 60)
+const isExpired = ref(false);
+let timerInterval = null;
+
+const formattedTime = computed(() => {
+  const h = Math.floor(timeLeft.value / 3600).toString().padStart(2, '0');
+  const m = Math.floor((timeLeft.value % 3600) / 60).toString().padStart(2, '0');
+  const s = (timeLeft.value % 60).toString().padStart(2, '0');
+  return `${h}:${m}:${s}`;
+});
+
+function startTimer() {
+  timerInterval = setInterval(() => {
+    if (timeLeft.value > 0) {
+      timeLeft.value--;
+    } else {
+      isExpired.value = true;
+      clearInterval(timerInterval);
+    }
+  }, 1000);
+}
+
+// --- FETCH DATA ---
 onMounted(async () => {
+  startTimer(); // Mulai hitung mundur
+
   const token = localStorage.getItem('kailku_token');
   try {
     const res = await fetch(`http://localhost:3000/payment/${paymentId}`, {
@@ -72,11 +98,15 @@ onMounted(async () => {
   } catch (e) { console.error(e); }
 });
 
+onUnmounted(() => {
+  if (timerInterval) clearInterval(timerInterval); // Bersihkan timer saat pindah halaman
+});
+
+// --- ACTIONS ---
 async function finishPayment() {
   const token = localStorage.getItem('kailku_token');
   isProcessing.value = true;
 
-  // Simulasi loading verifikasi (biar kerasa real)
   setTimeout(async () => {
     try {
       const res = await fetch(`http://localhost:3000/payment/${paymentId}/pay`, {
@@ -95,8 +125,7 @@ async function finishPayment() {
 function formatCurrency(val) { return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR" }).format(val || 0); }
 function getBankName(method) { return method ? method.replace('transfer_', '').toUpperCase() : ''; }
 function getBankLogo(method) {
-  // Return dummy logo based on bank name (sesuaikan path asset kamu)
-  // if(method.includes('bca')) return '.../bca.png';
+  // Logika placeholder logo bank sederhana
   return 'https://via.placeholder.com/50?text=Bank';
 }
 function copyVA() { navigator.clipboard.writeText(virtualAccount.value); alert("Disalin!"); }
@@ -122,14 +151,21 @@ function copyVA() { navigator.clipboard.writeText(virtualAccount.value); alert("
   text-align: center;
 }
 
+/* Style Timer */
 .timer {
   background: #fff3cd;
   color: #856404;
-  padding: 8px;
-  border-radius: 8px;
+  padding: 10px 20px;
+  border-radius: 50px;
   display: inline-block;
   font-weight: bold;
   margin-bottom: 20px;
+  font-size: 1.1rem;
+}
+
+.timer.expired {
+  background: #fee2e2;
+  color: #dc2626;
 }
 
 .amount-box h2 {
@@ -214,9 +250,16 @@ function copyVA() { navigator.clipboard.writeText(virtualAccount.value); alert("
   border: none;
   border-radius: 12px;
   cursor: pointer;
+  transition: 0.2s;
 }
 
-.btn-finish:hover {
+.btn-finish:hover:not(:disabled) {
   background: #059669;
+  transform: translateY(-2px);
+}
+
+.btn-finish:disabled {
+  background: #ccc;
+  cursor: not-allowed;
 }
 </style>
