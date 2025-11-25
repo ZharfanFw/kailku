@@ -12,23 +12,28 @@
         </div>
       </div>
 
+      <!--tabel cek kesediaan-->
       <div class="global-filter">
         <div class="filter-header">
           <strong>🔍 Cek Ketersediaan</strong>
           <small>(Ubah ini untuk melihat kursi kosong di jam berbeda)</small>
         </div>
+        <!--di dalmnya ada tanggal, jam cek, durasi-->
         <div class="filter-row">
           <div class="filter-group">
             <label>Tanggal</label>
             <input type="date" v-model="globalDate" :min="todayDate" />
           </div>
+          <!--tanggal-->
           <div class="filter-group">
             <label>Jam Cek</label>
             <select v-model="globalStartTime" :disabled="!globalDate">
               <option value="">-- Pilih Jam --</option>
+              <!--memilih perjam-->
               <option v-for="time in generatedTimeSlots" :key="time" :value="time">{{ time }}</option>
             </select>
           </div>
+          <!--durasi-->
           <div class="filter-group">
             <label>Durasi</label>
             <select v-model.number="globalDuration">
@@ -50,19 +55,24 @@
         </div>
       </div>
 
+      <!--denah peta-->
       <div class="seating-area">
         <div v-if="isLoadingSeats" class="loading-state">
           <div class="spinner"></div> Memuat denah...
         </div>
 
+        <!--tabel yang berisi denah tempat-->
         <div v-else class="layout-wrapper">
+          <!--kursi di bagian atas-->
           <div class="seat-row top">
             <div v-for="seat in layout.top" :key="seat.id" :class="['seat', getSeatVisualStatus(seat)]"
               @click="handleSeatClick(seat)">
               {{ seat.id }}
             </div>
           </div>
+          <!--kursi di bagian kanan dan kiri-->
           <div class="middle-section">
+            <!--kursi kiri-->
             <div class="seat-col left">
               <div v-for="seat in layout.left" :key="seat.id" :class="['seat', getSeatVisualStatus(seat)]"
                 @click="handleSeatClick(seat)">
@@ -72,6 +82,7 @@
             <div class="pond">
               <div class="water"><span>KOLAM</span></div>
             </div>
+            <!--kursi dibagian kanan-->
             <div class="seat-col right">
               <div v-for="seat in layout.right" :key="seat.id" :class="['seat', getSeatVisualStatus(seat)]"
                 @click="handleSeatClick(seat)">
@@ -79,6 +90,7 @@
               </div>
             </div>
           </div>
+          <!--kursi dibagian bawah-->
           <div class="seat-row bottom">
             <div v-for="seat in layout.bottom" :key="seat.id" :class="['seat', getSeatVisualStatus(seat)]"
               @click="handleSeatClick(seat)">
@@ -96,28 +108,37 @@
         <p>Pilih Tanggal & Jam di kiri, lalu klik kursi untuk menambahkan.</p>
       </div>
 
+      <!--tabl yang adaarnya-->
       <div class="booking-list">
+        <!--bagian dalam arnya-->
         <div v-for="(booking, index) in myBookings" :key="booking.tempId" class="booking-card">
+          <!--pnentuan nomor yang ada kursi-->
           <div class="card-header">
             <span class="seat-badge">Kursi #{{ booking.no_kursi }}</span>
             <button @click="removeBooking(index)" class="btn-del">Hapus</button>
           </div>
 
+          <!--tabl yang yang dalamnya tanggal, jam mulai, durasi-->
           <div class="card-body">
             <div class="form-group-sm">
               <label>Tanggal</label>
+              <!--memilih tanggal-->
               <input type="date" v-model="booking.tanggal" :min="todayDate"
                 @change="fetchSpecificSeatSchedule(booking)" />
             </div>
 
+            <!--jam yang dipilih usr mulai pada jam brapa-->
             <div class="form-group-sm">
               <label>Jam Mulai</label>
+
               <select v-model="booking.start" :disabled="booking.isLoadingSchedule">
+                <!--saat mmilih jam bisa diubah lagi -->
                 <option value="" disabled>{{ booking.isLoadingSchedule ? 'Cek..' : 'Pilih' }}</option>
                 <option v-for="time in booking.availableStartTimes" :key="time" :value="time">{{ time }}</option>
               </select>
             </div>
 
+            <!--durasi yang di pilih user-->
             <div class="form-group-sm">
               <label>Durasi</label>
               <select v-model.number="booking.durasi">
@@ -125,6 +146,7 @@
               </select>
             </div>
 
+            <!--jumlah yang akan di booking setiap perjam-->
             <div class="price-calc">
               Subtotal: <strong>{{ formatCurrency(PRICE_PER_HOUR * booking.durasi) }}</strong>
             </div>
@@ -340,60 +362,102 @@ async function fetchSpecificSeatSchedule(booking) {
 // --- 5. SUBMIT ---
 async function submitBookings() {
   // Validasi
+  //mencari bookign yang belum mengisi jam mulau (start_time)
   const invalid = myBookings.value.find(b => !b.start);
+  //jika ada yang kosong maka menampilkan peringatan
   if (invalid) return alert(`Lengkapi jam untuk Kursi #${invalid.no_kursi}`);
 
+  //ambil token dari localstorage untuk autentikasi, harus ada login terlebih dahulu
   const token = localStorage.getItem('kailku_token');
+  //tidak bisa ngebooking dikarenakan belum login, dah harus login
   if (!token) return router.push('/login');
 
+  //set status sedang submit untuk mendisabled button atau tampilkan loading
   isSubmitting.value = true;
   try {
+    //loop setiap item booking yang ada di myBookings
     for (const b of myBookings.value) {
+      //mensiapkan data yang akan dikirim ke API
       const payload = {
+        //ID_TEMPAT/venue
         tempat_id: VENUE_ID,
+        //nomor kursi yang di booking
         no_kursi: b.no_kursi,
+        //tanggal booking
         tanggal_booking: b.tanggal,
+        //jam mulai booking
         start_time: b.start,
+        //lama durasi
         duration: b.durasi
       };
+      //kirim request POST k API backend
       const res = await fetch('http://localhost:3000/bookings/', {
+        //metode http post
         method: 'POST',
+        //kirim data dalam dormat JSON
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        //serta akun yang sudah di login
         body: JSON.stringify(payload)
       });
+      //jika API reponse error, lempar error
       if (!res.ok) throw new Error("Gagal booking kursi " + b.no_kursi);
     }
+    //tampilan jika booking berhasil
     alert("Booking Berhasil!");
+    //setelah berhasil booking maka user akan dipindahkan ke cart
     router.push('/cart');
-  } catch (err) { alert(err.message); }
-  finally { isSubmitting.value = false; }
+  } catch (err) { alert(err.message); } //tangkap error dan tampilkan pesan ke user
+  finally { isSubmitting.value = false; } //set kembali status submit  selesai 
 }
 
 // --- HELPERS ---
 const generatedTimeSlots = computed(() => {
+  //jika jam buka venue belum ada, kembalikan array kosong
   if (!venueOpenTime.value) return [];
+  //array untuk menampong daftar slot waktu
   const slots = [];
+  //buat waktu awal berdasarkan jam (tanggal bebas, hanya jam yang di pakai)
   let current = new Date(`2000-01-01T${venueOpenTime.value}`);
+  ////buat waktu akhir berdasarkan jam tutup
   let end = new Date(`2000-01-01T${venueCloseTime.value}`);
+  //kurang 1 dari jam tutup, supaya slot trakhir tidak melewatu jam tutup
+  //misal tutup jam 22:00 maka slot trakhir 21:00
   end.setHours(end.getHours() - 1);
+
+  //loop untuk menghasilkan slot waktu dari jam buka hingga slot trakhir
   while (current <= end) {
+    //ambil hanya format jam:menit dari waktu contohnya "09:00", "10:00"
     slots.push(current.toTimeString().slice(0, 5));
+    //tambah 1 jam untuk slot berikutnya
     current.setMinutes(current.getMinutes() + 60);
   }
+  //kembalikan hasil daftar slot
   return slots;
 });
 
 // Layout Kolam
 const layout = computed(() => {
+  //menghitung total kursi 
   const total = seats.value.length;
+  //jika ada kuris, kemalikan layout kosong
   if (total === 0) return { top: [], right: [], bottom: [], left: [] };
+
+  //tentukan jumlah kursi di setiap sisi
+  //35% untuk sisi atas
   const topCount = Math.ceil(total * 0.35);
+  //15% sisi kanan
   const rightCount = Math.ceil(total * 0.15);
+  //35% sisi bawah
   const bottomCount = Math.ceil(total * 0.35);
+  //ambil data kursi untuk sisi atas dari index 0 sampai topCount
   const top = seats.value.slice(0, topCount);
+  //Ambil data kursi sisi kanan lanjutan atas
   const right = seats.value.slice(topCount, topCount + rightCount);
+  //ambil data kursi untuk sisi bawah setelah atas dan bawah
   const bottom = seats.value.slice(topCount + rightCount, topCount + rightCount + bottomCount);
+  //sisa kursi dimasukkan ke sisi kiri
   const left = seats.value.slice(topCount + rightCount + bottomCount);
+  //kembalikan layout sebagai objek 4 sisi
   return { top, right, bottom, left };
 });
 
